@@ -1,0 +1,125 @@
+Autosnort v1
+
+Triptych Security - Tony Robinson/da_667
+twitter: @da_667
+email: deusexmachina667@gmail.com
+
+[OSS licensing here – most likely GPL or some such.]
+
+Q & A
+
+Q:First and foremost, WHAT is Autosnort?
+
+A: Autosnort is a script written in bash for Ubuntu 12.04 that will, when ran, perform all of the steps outlined in David Gullett’s snort 2.9.3 and Snort Report 1.3.3 on Ubuntu 12.04 LTS Installation Guide.
+
+To spell it out a bit more clearly the script will:
+
+ Perform a series of checks to ensure we can perform the entire install (are we the root user? Do we have internet connectivity? Is sshd installed? Is Wget Installed?)
+
+Pull down the latest system updates via apt-get update and upgrade
+
+Pull down the requirements to run snort that are available in the Ubuntu repos via apt-get (e.g. bison, flex, g++, autoreconf, etc.)
+
+Pull down the mysql server/client via apt-get and prompt for a mysql root user password (part of the mysqld install procedure)
+
+After installing apache as part of the pre-reqs, pulls down jpgraph and snort report and drops them in /var/www
+
+Creates the snort user and group and prompts the user to enter a password for the snort user
+
+Pull down libdnet 1.12, daq-1.1.1, snort 2.9.3 and barnyard 2.10 and configure, make and install them from source in all cases. (Snort is compiled with the –with-Sourcefire option and installed to /usr/local.)
+
+IF present on the system, will take a snort rules snapshot, untar and unzip it, ask if you are running 32/64-bit Ubuntu and upon answer, copy the precompiled rules from the appropriate Ubuntu 10.04 precompiled directory (32 or 64 bit) copy them to /usr/local/snort/lib/dynamicrules and copy all plaintext rules to /usr/local/snort/rules
+
+Creates the white and blacklist.rules files and places them in /usr/local/snort/rules
+
+Modifies snort.conf
+ 
+ -var white_list_path, black_list_path variables to point to the white and blacklist.rules files
+	
+ -configure dynamicpreprocessor,  dynamicengine, and dynamicdetection directories to the directories specified in David Gullett’s document (/usr/local/snort/lib/*)
+	
+ -specify unified2 output 
+
+Create directories /var/log/snort and /var/snort and change ownership of /var/log/snort to the snort user and group
+
+Creates /var/log/barnyard2 and the /var/log/snort/barnyard2.waldo files/directories and assigns appropriate permissions and changes ownership to the right users where necessary
+
+Creates the snort database, database schema, and snort database user with privileges required to run snort report
+
+Modifies barnyard2.conf
+
+ -Specifies where to find reference.config file
+
+ -Specifies where to find classification.config file
+
+ -Specifies where to find gen-msg and sid-msg.map
+
+ -Specifies localhost as the hostname, and asks for the interfaces you want barnyard2’s config interfaces to be (management interface)
+
+ -Specifies information required for barnyard to talk to the snort mysql database (e.g. snort mysql user and snort mysql password, database name, etc.)
+
+Asks what interface snort will be listening on, and asks if you want to the script to modify /etc/network/interfaces to have it brought up on boot
+
+Asks if you want snort and barnyard to run on start-up and if yes, adds entries to start snort and barnyard2 at boot and daemonize them to rc.local
+
+Asks if you want to reboot the system (I found during development of this script that snort report wouldn’t work properly until the system was rebooted)
+
+Too Long; Didn’t read: Automates the entire setup process. All you need to do is answer these prompts in the script:
+
+1) Give the mysql root user a password
+
+2) Give the snort user a password 
+
+3) Give the snort mysql user a password
+
+4) Which directory you put your snort rules snapshot from snort.org
+
+5) What is the name of the snort rules file
+
+6) Are you running 32 or 64-bit Ubuntu (we need to know which pre-compiled rules to copy for use on this sensor)
+
+7) Enter the mysql root user password three times (once to make the snort database, once for the schema and one more time to give the snort database user privs to muck around the snort mysql database)
+
+8) Which interface do you wish to be dedicated to management traffic (e.g. SSH/HTTP/etc.)
+
+9) Which interface will snort actually be running on (script only supports passive mode currently, or running against a pre-configured bridge interface [e.g. a br0 interface you’ve already made])
+
+10) Do you want snort’s interface configured to be up at boot (adds entries to /etc/network/interfaces. Does not currently support bridge interfaces.)
+
+11) Do you want snort and barnyard configured to run at boot (rc.local entries)
+
+12) Do you want to reboot (init 6 now or later?)
+
+
+
+Q: Why did you do it? Security Onion already exists and the documents are already out there.
+
+A: I did this project because the Open-source and snort communities need easy to implement alternatives.  What if you don’t want to use an entire distro? What if you just want to install snort on what you already know?  What if you just want a different look at how the snort installation process works that’s not a PDF document? Most importantly, Why not? Why not release it and let the community play with it? One of the major turn-offs I hear about snort is that it’s so hard to install and set up. This script is a giant F U to those people and proves that someone will a little knowledge of bash scripting can automate a full-blown snort install and have it operational in roughly an hour’s time.
+
+Q: Dude, this script sucks. I could do this in half a day, in [insert scripting/programming language] blindfolded and with [x] functionality integrated.
+
+A: Okay, that’s fine. I accept that my script sucks. Which is why I am willing to accept criticism against this project. 
+
+So my script sucks. Tell me what sucks about it, and how you would improve it instead of straw man arguments against me.. I’m not much of a programmer obviously, so help me out --  not to benefit me but to benefit the Open-Source and snort community in general.
+
+Q: Why did you choose Ubuntu? Why not Redhat or Debian or CentOS or Gentoo or GNU/Hurd or […]
+
+A: This starts bleeding in to this little project’s massive to do list. Remember how I said above that we need easy to implement alternatives and you should be able to install snort on what you are familiar with? Well, part of my to do list would be to port this to other popular mainline and/or security distros – Backtrack, Debian and CentOS/Redhat – currently I have no plans to port this to source-based distros because I don’t have enough of a UNIX beard to do this. But if you want to build a script that gets snort to run on GNU/HURD, I would love to see it! If only because my eyes would likely bleed. To answer the question on why Ubuntu, this script is simply proof of concept. Ubuntu is ubiquitous and pretty easy to pick up so I went with it first.
+
+Q: So you mentioned a bit of a to-do list. You’re releasing a half-baked script?
+
+A: No, put down the pitchforks. I want to add some enhancements and additional functionality to this script in addition to porting it to a few other distros. Some things I would like to do:
+
+1) Add support for distributed installs (e.g. modify the script to install snort and barnyard2, then point barnyard2 to a management system running  the front-end of your choice and the mysql server.)
+
+2) Add support for barebones installs (e.g. no mysql, no barnyard, no web front-end, syslog only, configure rsyslogd, syslogd, etc. to log to a log management solution [think: splunk, graylog 2 or another SIEM – you don’t want/need packets, you just want alerts.])
+
+3) Add support for installing other/different web frontends (think: a choice of installing snorby and/or BASE instead of just snort report)
+
+4) Add support for inline installs either through guided installation and configuration of bridge-utils, or through proper use of the snort daq, maybe even pf_ring if I can figure out how the hell pf_ring works.
+
+5) Add support for running pulled pork to create a base ruleset, instead of defaulting to all rules on.
+
+I think this is enough of a list combined with getting the script to run on other distros to keep me busy for a long time. If there’s functionality you would see added, by all means, offer your suggestions, my contact information is up top.
+
+Thanks for your time!
