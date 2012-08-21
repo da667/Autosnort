@@ -1,15 +1,9 @@
 #!/bin/sh
-#auto-snort script v0.4
-
-# version .4 adds checks to ensure sshd and wget are found in the system to ensure remote access and system is able to retrieve snort from somewhere.
-
+#auto-snort script v1 - Verified as working for Ubuntu 12.04
 # purpose: from nothing to full snort in gods know how much time it takes to compile some of this shit.
-
 #at some point, I want this script to log to something for error reporting.
-
 ####step 1: pre-reqs.#### 
 # We need to check OS we're installing to, net connectivity, user we are running as, ensure sshd is running and wget is available.
-
 
 #assumes ubuntu 12.04 checks /etc/motd and cuts the version number to verify what OS we're running. Note: need a more reliable method to verify OS version.
 
