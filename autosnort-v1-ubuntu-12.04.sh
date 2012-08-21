@@ -22,12 +22,12 @@ sleep 2
 #assumes internet connectivity. Connectivity check uses icmp, pings google once, greps for "recieved," to verify successful ping.
 
 echo "Checking internet connectivity (pinging google.com) \n"
-     if [ $(ping -c 1 google.com | grep received, | cut -f5 -d " ") != "received," ]
-          then
-               echo "Ping to google has failed. Please verify you have network connectivity or ICMP outbound is allowed. Seriously, what harm is it going to do? \n"
-	exit 1
-          else
-               echo "Connectivity looks good!\n"
+     ping google.com -c1 2>&1 >> /dev/null
+     if [ $? == 0 ]; then
+          echo "Connectivity looks good!\n"
+     else
+          echo "Ping to google has failed. Please verify you have network connectivity or ICMP outbound is allowed. Seriously, what harm is it going to do? \n"
+   	  exit 1
      fi
 
 sleep 2
