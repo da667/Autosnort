@@ -62,9 +62,8 @@ echo "Checking to ensure sshd is running. \n"
 
 sleep 2
 #the below checks for the existence of wget and offers to download it via apt-get if it isn't installed.
-	/usr/bin/which wget
-		if [ $? -ne 0 ] 
-			then
+	/usr/bin/which wget 2>&1 >> /dev/null
+		if [ $? != 0 ]; then
         		echo "wget not found. Install wget?"
          case $wget_install in
                                 [yY] | [yY][Ee][Ss])
