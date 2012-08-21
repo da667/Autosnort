@@ -7,6 +7,18 @@
 
 #assumes ubuntu 12.04 checks /etc/motd and cuts the version number to verify what OS we're running. Note: need a more reliable method to verify OS version.
 
+install_packages()
+{
+ echo "Installing packages: ${@}"
+ apt-get install -y ${@}
+ if [ $? == 0 ]; then
+  echo "Packages successfully installed."
+ else
+  echo "Packages failed to install!"
+  exit 1
+ fi
+}
+
 echo "OS Version Check.\n"
      release=`lsb_release -r|awk '{print $2}'`
      if [ $release != "12.04" ]
@@ -67,9 +79,7 @@ sleep 2
         		echo "wget not found. Install wget?"
          case $wget_install in
                                 [yY] | [yY][Ee][Ss])
-                                echo "installing wget. \n"
-                                apt-get install -y wget
-                                echo "wget installed. \n"
+				install_packages wget
                                 ;;
                                 *)
                                 echo "Either you selected no or I didn't understand. Wget is required to continue"
@@ -88,8 +98,11 @@ sleep 2
 echo "Performing apt-get update and apt-get upgrade (with -y switch)\n"
 sleep 2
 apt-get update && apt-get -y upgrade 
-echo "\n"
-echo "Packages and repos are fully updated."
+if [ $? == 0 ]; then
+	echo "Packages and repos are fully updated."
+else
+	echo "apt-get upgrade or update failed."
+fi
 
 sleep 2
 
@@ -100,9 +113,8 @@ sleep 2
 
 #Here we grab base install requirements for a full stand-alone snort sensor, including web server for web UI. Maybe in a later version of the script, we can include a select statement where there user states this is a stand-alone sensor, whether or not they want web access (e.g. just send alert messages via syslog to a SIEM) or if this is part of a distributed install (mysql client + stunnel, configure to tunnel back to master UI server.) For now, I want to focus on getting the user a stand-alone snort box with a basic web UI. The packages below are recommended for that purpose.
 
-apt-get -y install nmap nbtscan apache2 php5 php5-mysql php5-gd libpcap0.8-dev libpcre3-dev g++ bison flex libpcap-ruby make autoconf libtool
-echo "\n"
-echo "base packages acquired \n"
+declare -a packages=(nmap nbtscan apache2 php5 php5-mysql php5-gd libpcap0.8-dev libpcre3-dev g++ bison flex libpcap-ruby make autoconf libtool);
+install_packages ${packages[@]}
 
 sleep 2
 
@@ -110,9 +122,8 @@ sleep 2
 
 echo "Acquiring and install mysql server and client packages. You will need to assign a password to the root mysql user. \n"
 
-sleep 4
-
-apt-get -y install mysql-server libmysqlclient-dev
+declare -a packages=(mysql-server libmysqlclient-dev)
+install_packages ${packages[@]}
 
 echo "\n"
 echo "mysql server and client installed. Make sure to store the root user password somewhere safe. \n"
