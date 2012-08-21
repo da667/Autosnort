@@ -279,11 +279,7 @@ sleep 2
 
 clear
 
-echo "Are you using 32-bit or 64-bit? \n"
-echo "Select 1 for 32-bit\n"
-echo "Select 2 for 64-bit\n"
-
-read arch
+arch=`uname -p`
 case $arch in
 		1)
 		echo "copying 32-bit SO-rules from Ubuntu 10.04 precompiled directory."
