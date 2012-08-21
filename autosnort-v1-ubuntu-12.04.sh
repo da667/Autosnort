@@ -8,7 +8,8 @@
 #assumes ubuntu 12.04 checks /etc/motd and cuts the version number to verify what OS we're running. Note: need a more reliable method to verify OS version.
 
 echo "OS Version Check.\n"
-     if [ $(cat /etc/motd | head -1 | cut -f4 -d " ") != "12.04" ]
+     release=`lsb_release -r|awk '{print $2}'`
+     if [ $release != "12.04" ]
           then
                echo "This is not Ubuntu 12.04. This script has not been tested on other platforms. If you would like to continue, please wait. Otherwise please enter ctrl+c now."
                sleep 10
