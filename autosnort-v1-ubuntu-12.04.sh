@@ -453,11 +453,11 @@ sed -i 's/config sid_file:            \/etc\/snort\/sid-msg.map/config sid_file:
 
 sed -i 's/#config hostname:   thor/config hostname: localhost/' barnyard2.conf.tmp
 
-echo "What interface is going to be your \"management\" interface? (e.g. what interface will be used to interact with a management workstation? This will be barnyard 2's config interface.)"
+echo "what interface will snort be listening on? (choose one interface. While it isn't necessary it is highly recommend you make this a separate interface from the interface you will be managing this sensor (e.g. using ssh to connect to this device) from:"
 
-read mgmt_interface
+read snort_iface
 
-sed -i 's/#config interface:  eth0/config interface: '$mgmt_interface'/' barnyard2.conf.tmp
+sed -i 's/#config interface:  eth0/config interface: '$snort_iface'/' barnyard2.conf.tmp
 
 sed -i 's/#   output database: log, mysql, user=root password=test dbname=db host=localhost/output database: log, mysql user=snort password='$mysql_pass' dbname=snort host=localhost/' barnyard2.conf.tmp
 
@@ -467,11 +467,9 @@ cp barnyard2.conf.tmp /usr/local/snort/etc/barnyard2.conf
 
 rm barnyard2.conf.tmp
 
-echo "what interface will snort be listening on? (choose one interface, please make it a separate interface from the management interface ($mgmt_interface)"
 
-read snort_iface
 
-echo "Would you like to have this interface configured to be up at boot? (useful if you want snort to run on startup.)"
+echo "Would you like to have $snort_iface configured to be up at boot? (useful if you want snort to run on startup.)"
 echo "Select 1 for yes, or 2 for no"
 #this choice determines whether we'll be hacking /etc/network/interfaces to have the interface started at boot.
 read boot_iface 
@@ -494,7 +492,7 @@ case $boot_iface in
 		echo "I didn't understand your answer, so I'll tell you what to do: if you want snort to run on an interface that is not a bridge interface, the interface needs to be up. To have this done automatically at boot time, you have to modify /etc/network/interfaces and input the following:
 auto [iface name]
 iface [iface name] inet manual
-up ifconcig [iface name] up. For bridge interfaces.... well, they aren't supported by this script... yet."
+up ifconfig [iface name] up. For bridge interfaces.... well, they aren't supported by this script... yet."
                 ;;
 esac
 
