@@ -1,17 +1,17 @@
-#!/bin/sh
-#auto-snort script v1 - Verified as working for Ubuntu 12.04
+#!/bin/bash
+#auto-snort script v2 - Verified as working for Ubuntu 12.04
+#v2 fixes: strictly calling bash to allow declare statements and arrays to work properly on Ubuntu.
+#removed newline characters. they were pretty pointless.
+#made the sshd check a bit clearer. If you have a better way of determining whether or not sshd is running, I'm all ears.
 # purpose: from nothing to full snort in gods know how much time it takes to compile some of this shit.
 #at some point, I want this script to log to something for error reporting.
-####step 1: pre-reqs.#### 
-# We need to check OS we're installing to, net connectivity, user we are running as, ensure sshd is running and wget is available.
 
-#assumes ubuntu 12.04 checks /etc/motd and cuts the version number to verify what OS we're running. Note: need a more reliable method to verify OS version.
-
+#Declaring Functions - This function contributed by Kyle Johnson is an easier way to reuse the apt-get code. I added a slight change to perform apt-get update to ensure we're getting the latest packages available.
 install_packages()
 {
  echo "Installing packages: ${@}"
- apt-get install -y ${@}
- if [ $? == 0 ]; then
+ apt-get update && apt-get install -y ${@}
+ if [ $? -eq 0 ]; then
   echo "Packages successfully installed."
  else
   echo "Packages failed to install!"
@@ -19,27 +19,35 @@ install_packages()
  fi
 }
 
-echo "OS Version Check.\n"
+####step 1: pre-reqs.#### 
+# We need to check OS we're installing to, net connectivity, user we are running as, ensure sshd is running and wget is available.
+
+
+
+#assumes ubuntu 12.04 checks lsb_release -r and awks the version number to verify what OS we're running.
+#this method is more reliable than my catting /etc/motd. Credit to Kyle Johnson for adding this check and replacing my broken check.
+
+echo "OS Version Check."
      release=`lsb_release -r|awk '{print $2}'`
      if [ $release != "12.04" ]
           then
                echo "This is not Ubuntu 12.04. This script has not been tested on other platforms. If you would like to continue, please wait. Otherwise please enter ctrl+c now."
                sleep 10
           else
-               echo "Version is 12.04. Good to go.\n"
+               echo "Version is 12.04. Good to go."
 		echo " "
      fi
 
 sleep 2
 
 #assumes internet connectivity. Connectivity check uses icmp, pings google once, greps for "recieved," to verify successful ping.
-
-echo "Checking internet connectivity (pinging google.com) \n"
+#Crediting Kyle for modifying my ICMP check to be a bit cleaner. I'm learning new things everyday.
+echo "Checking internet connectivity (pinging google.com)"
      ping google.com -c1 2>&1 >> /dev/null
-     if [ $? == 0 ]; then
-          echo "Connectivity looks good!\n"
+     if [ $? -eq 0 ]; then
+          echo "Connectivity looks good!"
      else
-          echo "Ping to google has failed. Please verify you have network connectivity or ICMP outbound is allowed. Seriously, what harm is it going to do? \n"
+          echo "Ping to google has failed. Please verify you have network connectivity or ICMP outbound is allowed. Seriously, what harm is it going to do?"
    	  exit 1
      fi
 
@@ -48,34 +56,34 @@ sleep 2
 
 #assumes script is ran as root. root check performed via use of whoami
 
-echo "User Check \n"
+echo "User Check"
      if [ $(whoami) != "root" ]
           then
-               echo "This script must be ran with sudo or root privileges, or this isn't going to work. \n"
+               echo "This script must be ran with sudo or root privileges, or this isn't going to work."
 		exit 1
           else
-               echo "We are root. Gods of this system. \n"
-		echo " "
+               echo "We are root."
      fi
 
 sleep 2
 
-#checking to ensure sshd is running done by running ps-ef, grepping for sshd, and pulling the 25th line via cut with space as the delimiter.
+#checking to ensure sshd is running done by running ps-ef, grepping for sshd, using wc -l and if we have more than one line, using that as a sign that SSHD is running 
+#(anyone who's used ps-ef | grep [blah] knows that it will always return 0. However if it only returns one line, that means the process you are searching for is not actually running.)
 
-echo "\n"
-echo "Checking to ensure sshd is running. \n"
+echo "Checking to ensure sshd is running."
 
-	if [ $(ps -ef | grep sshd | head -1 | cut -f25 -d " ") != "/usr/sbin/sshd" ]
+	if [ $(/bin/ps -ef |/bin/grep sshd |/usr/bin/wc -l) -gt 1 ]
 		then
-			echo "sshd isn't running or isn't located in sbin. \n"
+			echo "sshd is running "
 		else
-			echo "sshd is up and running... \n"
+			echo "sshd isn't running..."
 	fi
 
 sleep 2
 #the below checks for the existence of wget and offers to download it via apt-get if it isn't installed.
+#Crediting Kyle Johnson for cleaning up the actual which check for wget.
 	/usr/bin/which wget 2>&1 >> /dev/null
-		if [ $? != 0 ]; then
+		if [ $? -ne 0 ]; then
         		echo "wget not found. Install wget?"
          case $wget_install in
                                 [yY] | [yY][Ee][Ss])
@@ -87,7 +95,7 @@ sleep 2
                                 ;;
                                 esac
 		else
-        		echo "found wget. \n"
+        		echo "found wget."
 		fi
 		
 sleep 2
@@ -95,10 +103,10 @@ sleep 2
 
 #Here we call apt-get update and apt-get -y upgrade to ensure all repos and stock software is fully updated.
 
-echo "Performing apt-get update and apt-get upgrade (with -y switch)\n"
+echo "Performing apt-get update and apt-get upgrade (with -y switch)"
 sleep 2
 apt-get update && apt-get -y upgrade 
-if [ $? == 0 ]; then
+if [ $? -eq 0 ]; then
 	echo "Packages and repos are fully updated."
 else
 	echo "apt-get upgrade or update failed."
@@ -106,8 +114,8 @@ fi
 
 sleep 2
 
-echo " "
-echo "Grabbing required packages via apt-get.\n"
+
+echo "Grabbing required packages via apt-get."
 
 sleep 2
 
@@ -120,19 +128,19 @@ sleep 2
 
 #Here we download the mysql client/server packages and notify the user that they will need to input a root user password.
 
-echo "Acquiring and install mysql server and client packages. You will need to assign a password to the root mysql user. \n"
+echo "Acquiring and install mysql server and client packages. You will need to assign a password to the root mysql user."
 
 declare -a packages=(mysql-server libmysqlclient-dev)
 install_packages ${packages[@]}
 
-echo "\n"
-echo "mysql server and client installed. Make sure to store the root user password somewhere safe. \n"
+
+echo "mysql server and client installed. Make sure to store the root user password somewhere safe."
 
 sleep 2
 
 #Grab jpgraph and throw it in /var/www
 
-echo "Downloading and installing jpgraph.\n"
+echo "Downloading and installing jpgraph."
 
 sleep 2
 
@@ -142,7 +150,7 @@ mkdir /var/www/jpgraph
 tar -xzvf jpgraph-1.27.1.tar.gz
 cp -r jpgraph-1.27.1/src /var/www/jpgraph
 
-echo "jpgraph downloaded to /usr/src. installed to /var/www/jpgraph.\n"
+echo "jpgraph downloaded to /usr/src. installed to /var/www/jpgraph."
 
 
 sleep 2
@@ -161,22 +169,20 @@ clear
 
 echo "You will need to Enter the mysql database password for the user \"snort\" (we have not created the snort user yet, we will be doing so shortly) in the file /var/www/snortreport-1.3.3/srconf.php on the line \"\$pass = \"YOURPASS\";"
 echo "I will give you the choice of doing this yourself, or having me do it for you."
-echo "\n"
 echo "Enter 1 to input the mysql snort user password and have the line autopopulated."
 echo "Enter 2 to modify srconf.php yourself"
-echo "\n"
 read srconf_choice
 
 case $srconf_choice in
-			[1] | [Oo][Nn][Ee])
-                        echo "I need the password, please. \n"
+						1)
+                        echo "I need the password, please."
 			read mysql_pass
-                        echo "modifying srconf.php... \n"
+                        echo "modifying srconf.php..."
 #copying srconf.php to the root directory, modifying it via sed, replacing it, them removing it.
 			sed s/YOURPASS/$mysql_pass/ /var/www/snortreport-1.3.3/srconf.php >/root/srconf.php.tmp && mv /root/srconf.php.tmp /var/www/snortreport-1.3.3/srconf.php && rm /root/srconf.php.tmp
-			echo "password insertion complete.\n"
+			echo "password insertion complete."
 			clear
-			;;
+						;;
                         *)
                         echo "Very Well. The file is srconf.php, located in /var/www/snort-report-1.3.3. Remember to look for the line \$pass = \"YOURPASS\"; and input the correct password."
                         ;;        
@@ -186,7 +192,7 @@ sleep 2
 
 #get daq libraries from snort.org, then build them.
 
-echo "acquiring Data Acquistion Libraries version 1.1.1 (DAQ) from snort.org...\n"
+echo "acquiring Data Acquistion Libraries version 1.1.1 (DAQ) from snort.org..."
 
 cd /usr/src
 
@@ -198,17 +204,17 @@ cd daq-*
 
 sleep 2
 
-echo "Configuring, making and compiling. This will take a moment or two.\n"
+echo "Configuring, making and compiling. This will take a moment or two."
 
 sleep 2
 
 ./configure && make && make install
 
-echo "DAQ libraries installed.\n"
+echo "DAQ libraries installed."
 
 #download, compile and make libdnet, then link it to work properly.
 
-echo "acquiring libdnet 1.12 library from googlecode.com...\n"
+echo "acquiring libdnet 1.12 library from googlecode.com..."
 
 cd /usr/src
 wget http://libdnet.googlecode.com/files/libdnet-1.12.tgz
@@ -216,18 +222,18 @@ tar -xzvf libdnet-1.12.tgz
 cd libdnet-1.12
 sleep 2
 
-echo "configuring, making, compiling and linking libdnet. This will take a moment or two.\n"
+echo "configuring, making, compiling and linking libdnet. This will take a moment or two."
 
 sleep 2
 
 ./configure && make && make install && ln -s /usr/local/lib/libdnet.1.0.1 /usr/lib/libdnet.1
 
-echo "libdnet installed and linked.\n"
+echo "libdnet installed and linked."
 
 #now we download and build snort itself. The --with-sourcefire option gives us ppm and perfstats for performance troubleshooting.
 #same as with daq, the download link needs to change if a new version of snort comes out. Go to snort.org/downloads, "copy link location" paste link below into wget statement. Profit.
 
-echo "acquiring snort 2.9.3 from snort.org...\n"
+echo "acquiring snort 2.9.3 from snort.org..."
 
 cd /usr/src
 wget http://www.snort.org/downloads/1814 -O snort-2.9.3.tar.gz
@@ -236,19 +242,19 @@ cd snort-2.9.3
 
 sleep 2
 
-echo "configuring snort (options --prefix=/usr/local/snort and --enable-sourcefire), making and installing. This will take a moment or two.\n"
+echo "configuring snort (options --prefix=/usr/local/snort and --enable-sourcefire), making and installing. This will take a moment or two."
 
 sleep 2
 
 ./configure --prefix=/usr/local/snort --enable-sourcefire && make && make install
 
-echo "snort install complete.\n"
+echo "snort install complete. Installed to /usr/local/snort."
 
 sleep 2
 
 #supporting infrastructure for snort.
 
-echo "creating directories /var/log/snort, and /var/snort \n"
+echo "creating directories /var/log/snort, and /var/snort."
 
 sleep 2
 
@@ -266,7 +272,7 @@ chown snort:snort /var/log/snort
 
 clear
 
-echo "we added the snort user and group, the snort user requires a password, please enter a password."
+echo "we added the snort user and group, the snort user requires a password, please enter a password and confirm this password."
 
 passwd snort
 
@@ -274,12 +280,12 @@ clear
 
 echo "The next portion of the script requires the snort rules tarball to be present on the system, and will prompt for the directory path and filename. If you have not done so already, copy the snort rules tarball to this system, note the directory path and file name, then press enter here to continue."
 
-echo "Directory where snort rules are located: (no trailing slashes)  \n"
+echo "Directory where snort rules are located: (no trailing slashes)"
 read rule_directory
-echo "Rules file name:\n"
+echo "Rules file name:"
 read rule_filename
 
-echo "unpacking rules file from $rule_directory/$rule_filename and moving to /usr/local/snort \n"
+echo "unpacking rules file from $rule_directory/$rule_filename and moving to /usr/local/snort"
 
 tar -xzvf $rule_directory/$rule_filename -C /usr/local/snort
 mkdir /usr/local/snort/lib/snort_dynamicrules
@@ -290,13 +296,13 @@ sleep 2
 
 clear
 
-arch=`uname -p`
+arch=`uname -i`
 case $arch in
-		1)
+		i386)
 		echo "copying 32-bit SO-rules from Ubuntu 10.04 precompiled directory."
 		cp /usr/local/snort/so_rules/precompiled/Ubuntu-10-4/i386/2.9.3.0/* /usr/local/snort/lib/snort_dynamicrules
 		;;
-		2)
+		x86_64)
 		echo "copying 64-bit SO-rules from Ubuntu 10.04 precompiled directory."
 		cp /usr/local/snort/so_rules/precompiled/Ubuntu-10-4/x86-64/2.9.3.0/* /usr/local/snort/lib/snort_dynamicrules
 		;;
@@ -343,7 +349,9 @@ sed -i 's/var WHITE_LIST_PATH ..\/rules/var WHITE_LIST_PATH \/usr\/local\/snort\
 sed -i 's/var BLACK_LIST_PATH ..\/rules/var BLACK_LIST_PATH \/usr\/local\/snort\/rules/' snort.conf.tmp
 
 cp snort.conf.tmp /usr/local/snort/etc/snort.conf
+
 #we clean up after ourselves...
+
 rm snort.conf.tmp
 
 #now we have to download barnyard 2 and configure all of its stuff.
@@ -362,13 +370,13 @@ autoreconf -fvi -I ./m4
 #remember when we asked the user if they are 32 or 64-bit? Well we saved that answer and use it to help find where the mysql libs are on the system, instead of having to ask them again.
 
 case $arch in
-                1)
+                i386)
                 echo "preparing configure statement to point to 32-bit libraries."
 ./configure --with-mysql --with-mysql-libraries=/usr/lib/i386-linux-gnu
 
 sleep 2
                 ;;
-                2)
+                x86_64)
                 echo "preparing configure statement to point to 64-bit libraries"
 ./configure --with-mysql --with-mysql-libraries=/usr/lib/x86_64-linux-gnu
 
@@ -398,13 +406,22 @@ sleep 2
 
 #we ask the user for a password for snort report earlier. here's where we build the mysql database and give rights to the snort user to manage the database.
 
-echo "the next several steps will need you to enter the mysql root user passwordmore than once."
+echo "the next several steps will need you to enter the mysql root user password more than once."
 
 sleep 4
 echo "enter the mysql root user password to create the snort database."
 mysql -u root -p -e "create database snort;"
 echo "enter the mysql root user password again to create the snort database schema"
 mysql -u root -p -D snort < ./schemas/create_mysql
+
+
+
+echo "you'll need to enter the mysql root user password one more time to create the snort database user and grant it permissions to the snort database."
+
+
+#the snort user's mysql password (dumped into srconf earlier) is set here. We remind the user that we set this password earlier and create the snort database user with rights to modify all this stuff.
+
+mysql -u root -p -e "grant create, insert, select, delete, update on snort.* to snort@localhost identified by '$mysql_pass';"
 
 #we warn the user that the snort user's password, created earlier when configuring snort report will be used to access data from the database for the web ui. we show them the password again for a few seconds, and clear the screen.
 
@@ -415,12 +432,6 @@ echo "the password chosen for the snort user earlier ($mysql_pass) will be used 
 sleep 6
 
 clear
-
-echo "you'll need to enter the mysql root user password one more time to create the snort database user and grant it permissions to the snort database."
-
-#just as stated above, the snort user's mysql password (dumped into srconf earlier) is set here. We remind the user that we set this password earlier and create the snort database user with rights to modify all this stuff.
-
-mysql -u root -p -e "grant create, insert, select, delete, update on snort.* to snort@localhost identified by '$mysql_pass';"
 
 #now we modify the barnyard2 conf file, same way we set up the snort.conf file -- make a temp copy in root's home, sed-foo it, then replace it. Voila!
 
