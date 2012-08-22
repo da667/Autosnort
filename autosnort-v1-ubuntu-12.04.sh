@@ -31,14 +31,21 @@ echo "OS Version Check."
      release=`lsb_release -r|awk '{print $2}'`
      if [ $release != "12.04" ]
           then
-               echo "This is not Ubuntu 12.04. This script has not been tested on other platforms. If you would like to continue, please wait. Otherwise please enter ctrl+c now."
-               sleep 10
+               echo "This is not Ubuntu 12.04. This script has not been tested on other platforms."
+               while true; do
+                   read -p "Continue? (y/n)" warncheck
+                   case $warncheck in
+                       [Yy]* ) break;;
+                       [Nn]* ) echo "Cancelling."; exit;;
+                       * ) echo "Please answer yes or no.";;
+                   esac
+done
           else
                echo "Version is 12.04. Good to go."
 		echo " "
      fi
 
-sleep 2
+
 
 #assumes internet connectivity. Connectivity check uses icmp, pings google once, greps for "recieved," to verify successful ping.
 #Crediting Kyle for modifying my ICMP check to be a bit cleaner. I'm learning new things everyday.
@@ -51,7 +58,7 @@ echo "Checking internet connectivity (pinging google.com)"
    	  exit 1
      fi
 
-sleep 2
+
 
 
 #assumes script is ran as root. root check performed via use of whoami
@@ -65,7 +72,7 @@ echo "User Check"
                echo "We are root."
      fi
 
-sleep 2
+
 
 #checking to ensure sshd is running done by running ps-ef, grepping for sshd, using wc -l and if we have more than one line, using that as a sign that SSHD is running 
 #(anyone who's used ps-ef | grep [blah] knows that it will always return 0. However if it only returns one line, that means the process you are searching for is not actually running.)
@@ -79,7 +86,7 @@ echo "Checking to ensure sshd is running."
 			echo "sshd isn't running..."
 	fi
 
-sleep 2
+
 #the below checks for the existence of wget and offers to download it via apt-get if it isn't installed.
 #Crediting Kyle Johnson for cleaning up the actual which check for wget.
 	/usr/bin/which wget 2>&1 >> /dev/null
@@ -98,13 +105,13 @@ sleep 2
         		echo "found wget."
 		fi
 		
-sleep 2
+
 ####step 2: patches and package pre-reqs####
 
 #Here we call apt-get update and apt-get -y upgrade to ensure all repos and stock software is fully updated.
 
 echo "Performing apt-get update and apt-get upgrade (with -y switch)"
-sleep 2
+
 apt-get update && apt-get -y upgrade 
 if [ $? -eq 0 ]; then
 	echo "Packages and repos are fully updated."
@@ -112,19 +119,19 @@ else
 	echo "apt-get upgrade or update failed."
 fi
 
-sleep 2
+
 
 
 echo "Grabbing required packages via apt-get."
 
-sleep 2
+
 
 #Here we grab base install requirements for a full stand-alone snort sensor, including web server for web UI. Maybe in a later version of the script, we can include a select statement where there user states this is a stand-alone sensor, whether or not they want web access (e.g. just send alert messages via syslog to a SIEM) or if this is part of a distributed install (mysql client + stunnel, configure to tunnel back to master UI server.) For now, I want to focus on getting the user a stand-alone snort box with a basic web UI. The packages below are recommended for that purpose.
 
 declare -a packages=(nmap nbtscan apache2 php5 php5-mysql php5-gd libpcap0.8-dev libpcre3-dev g++ bison flex libpcap-ruby make autoconf libtool);
 install_packages ${packages[@]}
 
-sleep 2
+
 
 #Here we download the mysql client/server packages and notify the user that they will need to input a root user password.
 
@@ -136,13 +143,13 @@ install_packages ${packages[@]}
 
 echo "mysql server and client installed. Make sure to store the root user password somewhere safe."
 
-sleep 2
+
 
 #Grab jpgraph and throw it in /var/www
 
 echo "Downloading and installing jpgraph."
 
-sleep 2
+
 
 cd /usr/src
 wget http://hem.bredband.net/jpgraph/jpgraph-1.27.1.tar.gz
@@ -153,7 +160,7 @@ cp -r jpgraph-1.27.1/src /var/www/jpgraph
 echo "jpgraph downloaded to /usr/src. installed to /var/www/jpgraph."
 
 
-sleep 2
+
 
 #now to install snort report. In the future, I want to give the user a choice between snort report, BASE, snorby, or no web interface at all (barebones/distributed install)
 
@@ -163,7 +170,7 @@ cd /usr/src
 wget http://www.symmetrixtech.com/ids/snortreport-1.3.3.tar.gz
 tar -xzvf snortreport-1.3.3.tar.gz -C /var/www/
 
-clear
+
 
 #this portion of the script gives the user a choice to modify srconf.php automatically or doing it themselves. For snortreport to work it needs the username and password for the snort mysql user.
 
@@ -181,14 +188,14 @@ case $srconf_choice in
 #copying srconf.php to the root directory, modifying it via sed, replacing it, them removing it.
 			sed s/YOURPASS/$mysql_pass/ /var/www/snortreport-1.3.3/srconf.php >/root/srconf.php.tmp && mv /root/srconf.php.tmp /var/www/snortreport-1.3.3/srconf.php && rm /root/srconf.php.tmp
 			echo "password insertion complete."
-			clear
+			
 						;;
                         *)
                         echo "Very Well. The file is srconf.php, located in /var/www/snort-report-1.3.3. Remember to look for the line \$pass = \"YOURPASS\"; and input the correct password."
                         ;;        
 esac
 
-sleep 2
+
 
 #get daq libraries from snort.org, then build them.
 
@@ -202,11 +209,11 @@ wget http://www.snort.org/downloads/1806 -O daqlibs.tar.gz
 tar -xzvf daqlibs.tar.gz
 cd daq-*
 
-sleep 2
+
 
 echo "Configuring, making and compiling. This will take a moment or two."
 
-sleep 2
+
 
 ./configure && make && make install
 
@@ -220,11 +227,11 @@ cd /usr/src
 wget http://libdnet.googlecode.com/files/libdnet-1.12.tgz
 tar -xzvf libdnet-1.12.tgz
 cd libdnet-1.12
-sleep 2
+
 
 echo "configuring, making, compiling and linking libdnet. This will take a moment or two."
 
-sleep 2
+
 
 ./configure && make && make install && ln -s /usr/local/lib/libdnet.1.0.1 /usr/lib/libdnet.1
 
@@ -240,29 +247,29 @@ wget http://www.snort.org/downloads/1814 -O snort-2.9.3.tar.gz
 tar -xzvf snort-2.9.3.tar.gz
 cd snort-2.9.3
 
-sleep 2
+
 
 echo "configuring snort (options --prefix=/usr/local/snort and --enable-sourcefire), making and installing. This will take a moment or two."
 
-sleep 2
+
 
 ./configure --prefix=/usr/local/snort --enable-sourcefire && make && make install
 
 echo "snort install complete. Installed to /usr/local/snort."
 
-sleep 2
+
 
 #supporting infrastructure for snort.
 
 echo "creating directories /var/log/snort, and /var/snort."
 
-sleep 2
+
 
 mkdir /var/snort && mkdir /var/log/snort
 
 echo "creating snort user and group, assigning ownership of /var/log/snort to snort user and group. \n"
 
-sleep 2
+
 
 #users and groups for snort to run non-priveledged.
 
@@ -270,13 +277,13 @@ groupadd snort
 useradd -g snort snort
 chown snort:snort /var/log/snort
 
-clear
+
 
 echo "we added the snort user and group, the snort user requires a password, please enter a password and confirm this password."
 
 passwd snort
 
-clear
+
 
 echo "The next portion of the script requires the snort rules tarball to be present on the system, and will prompt for the directory path and filename. If you have not done so already, copy the snort rules tarball to this system, note the directory path and file name, then press enter here to continue."
 
@@ -290,11 +297,11 @@ echo "unpacking rules file from $rule_directory/$rule_filename and moving to /us
 tar -xzvf $rule_directory/$rule_filename -C /usr/local/snort
 mkdir /usr/local/snort/lib/snort_dynamicrules
 
-sleep 2
+
 
 # We have to ask the user if they are using 32-bit or a 64-bit distro to copy the SO_rules from the correct directory, otherwise SO rules will not work, then we're creating whitelist.rules and blacklist.rules and letting ldconfig do its voodoo.
 
-clear
+
 
 arch=`uname -i`
 case $arch in
@@ -312,13 +319,13 @@ case $arch in
 esac
 
 echo "ldconfig processing and creation of whitelist/blacklist.rules files taking place."
-sleep 2
+
 
 touch /usr/local/snort/rules/white_list.rules && touch /usr/local/snort/rules/black_list.rules && ldconfig
 
 echo "Modifying snort.conf -- specifying unified 2 output, SO whitelist/blacklist and standard rule locations."
 
-sleep 2
+
 
 #here we take the copy of snort.conf from /usr/local/snort/etc, copy it to root's home directory and perform shitloads of sed-foo on the file, then copy it back. It's maaaagic.
 
@@ -357,7 +364,7 @@ rm snort.conf.tmp
 #now we have to download barnyard 2 and configure all of its stuff.
 
 echo "downloading, making and compiling barnyard2."
-sleep 2
+
 
 wget https://nodeload.github.com/firnsy/barnyard2/tarball/master -O barnyard2-2.10.tar.gz
 
@@ -374,13 +381,13 @@ case $arch in
                 echo "preparing configure statement to point to 32-bit libraries."
 ./configure --with-mysql --with-mysql-libraries=/usr/lib/i386-linux-gnu
 
-sleep 2
+
                 ;;
                 x86_64)
                 echo "preparing configure statement to point to 64-bit libraries"
 ./configure --with-mysql --with-mysql-libraries=/usr/lib/x86_64-linux-gnu
 
-sleep 2
+
                 ;;
                 *)
                 echo "unable to determine architecture from your answer. The configure statement for barnyard needs to know where to find mysql libraries (--with-mysql-libraries=/my/mysqllib/path)"
@@ -391,7 +398,7 @@ esac
 make && make install
 
 echo "configuring supporting infrastructure for barnyard (file ownership to snort user/group, file permissions, waldo file, etc.)"
-sleep 2
+
 
 #the statements below copy the barnyard2.conf file where we want it and establish proper rights to various barnyard2 files and directories.
 
@@ -402,13 +409,12 @@ touch /var/log/snort/barnyard2.waldo
 chown snort.snort /var/log/snort/barnyard2.waldo
 
 echo "building mysql infrastructure"
-sleep 2
+
 
 #we ask the user for a password for snort report earlier. here's where we build the mysql database and give rights to the snort user to manage the database.
 
 echo "the next several steps will need you to enter the mysql root user password more than once."
 
-sleep 4
 echo "enter the mysql root user password to create the snort database."
 mysql -u root -p -e "create database snort;"
 echo "enter the mysql root user password again to create the snort database schema"
@@ -423,21 +429,13 @@ echo "you'll need to enter the mysql root user password one more time to create 
 
 mysql -u root -p -e "grant create, insert, select, delete, update on snort.* to snort@localhost identified by '$mysql_pass';"
 
-#we warn the user that the snort user's password, created earlier when configuring snort report will be used to access data from the database for the web ui. we show them the password again for a few seconds, and clear the screen.
 
-clear
-
-echo "the password chosen for the snort user earlier ($mysql_pass) will be used to give snort report the ability to read data from the database. record this password for safekeeping!"
-
-sleep 6
-
-clear
 
 #now we modify the barnyard2 conf file, same way we set up the snort.conf file -- make a temp copy in root's home, sed-foo it, then replace it. Voila!
 
 echo "building barnyard2.conf, point to reference.conf, classication.conf, gen-msg and sid-msg maps, as well as use the local mysql database, snort database, and snort user."
 
-sleep 2
+
 
 cd /root
 
@@ -520,6 +518,8 @@ case $startup_choice in
 esac
 
 #todo list: give users the ability to choose 2 interfaces or a bridge interface for inline deployments. Instead of fucking around with daq, just have snort listen to a bridge interface... Well, until I learn to do this properly.
+
+echo "NOTE: the password chosen for the snort user earlier ($mysql_pass) will be used to give snort report the ability to read data from the database. record this password for safekeeping!"
 
 echo "One last choice. A reboot is recommended, considering all the configuration files we've messed with and updates that have been applied to the system. Do you want to reboot now or later? Again, 1 is yes, 2 is no."
 
