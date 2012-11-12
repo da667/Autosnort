@@ -200,31 +200,40 @@ case $srconf_choice in
                         ;;        
 esac
 
-#get daq libraries from snort.org, drop them in /usr/src, untar, then build them.
-#if a new version of daq comes out, the only thing that needs to be modified here is the download link.
 
-echo "acquiring Data Acquistion Libraries version 1.1.1 (DAQ) from snort.org..."
+#We pull snort.org/snort-downloads and use some grep and cut-fu to determine the current stable daq and snort version and download them to /usr/src
 
-cd /usr/src
+echo "acquiring latest version of snort and daq."
+echo ""
 
-#change this download link to get the latest version of daq.snort.org/downloads. right click copy link location. paste below. Profit. Need to find a way to automatically download the latest daq
+cd /tmp 1>/dev/null
+wget -q http://snort.org/snort-downloads -O /tmp/snort-downloads
+snortver=`cat /tmp/snort-downloads | grep snort-[0-9]|cut -d">" -f2 |cut -d"<" -f1 | head -1`
+daqver=`cat /tmp/snort-downloads | grep daq|cut -d">" -f2 |cut -d"<" -f1 | head -1`
+rm /tmp/snort-downloads
+cd /usr/src 1>/dev/null
+wget http://snort.org/dl/snort-current/$snortver -O $snortver
+wget http://snort.org/dl/snort-current/$daqver -O $daqver
 
-wget http://www.snort.org/downloads/1850 -O daqlibs.tar.gz
-tar -xzvf daqlibs.tar.gz
+echo "Unpacking daq libraries"
+echo ""
+
+tar -xzvf $daqver
 cd daq-*
 
-
-
-echo "Configuring, making and compiling. This will take a moment or two."
+echo "Configuring, making and compiling DAQ. This will take a moment or two."
+echo ""
 
 ./configure && make && make install
 
 echo "DAQ libraries installed."
+echo ""
 
 #download, compile and make libdnet, then link it to work properly.
 #libdnet hasn't been updated since 2007. Pretty sure we won't have to worry about the filename changing.
 
-echo "acquiring libdnet 1.12 library from googlecode.com..."
+echo "acquiring libdnet 1.12 library from googlecode."
+echo ""
 
 cd /usr/src
 wget http://libdnet.googlecode.com/files/libdnet-1.12.tgz
@@ -232,29 +241,34 @@ tar -xzvf libdnet-1.12.tgz
 cd libdnet-1.12
 
 echo "configuring, making, compiling and linking libdnet. This will take a moment or two."
+echo ""
 
-#this is in regards to the fix posted in David Gullett's snort guide, having to link libdnet to get snort to work correctly.
+#this is in regards to the fix posted in David Gullett's snort guide - /usr/local/lib isn't include in ld path by default in Ubuntu.. Backtrack is Ubuntu-based so this fix is likely still valid. Easier to link it than muck around with ld conf files
 
 ./configure && make && make install && ln -s /usr/local/lib/libdnet.1.0.1 /usr/lib/libdnet.1
 
 echo "libdnet installed and linked."
+echo ""
 
 #now we download and build snort itself. The --enable-sourcefire option gives us ppm and perfstats for performance troubleshooting.
 #same as with daq, the download link needs to change if a new version of snort comes out. Go to snort.org/downloads, "copy link location" paste link below into wget statement. Profit.
 #TODO: future-proof this the same way I did above with daq. cd snort-# change the -O statement to snort.tar.gz
 
 echo "acquiring snort from snort.org..."
+echo ""
 
 cd /usr/src
-wget http://www.snort.org/downloads/1862 -O snort-2.9.3.1.tar.gz
-tar -xzvf snort-2.9.3.1.tar.gz
+tar -xzvf $snortver
 cd snort-*
 
 echo "configuring snort (options --prefix=/usr/local/snort and --enable-sourcefire), making and installing. This will take a moment or two."
+echo ""
 
 ./configure --prefix=/usr/local/snort --enable-sourcefire && make && make install
 
+
 echo "snort install complete. Installed to /usr/local/snort."
+echo ""
 
 #supporting infrastructure for snort.
 
@@ -264,13 +278,14 @@ mkdir /var/snort && mkdir /var/log/snort
 
 echo "creating snort user and group, assigning ownership of /var/log/snort to snort user and group. \n"
 
-#users and groups for snort to run non-priveledged.
+#users and groups for snort to run non-priveledged. snort's login shell is set to /bin/false to enforce the fact that this is a service account.
 
 groupadd snort
-useradd -g snort snort
+useradd -g snort snort -s /bin/false
 chown snort:snort /var/log/snort
 
 #just as the echo statement says, it's a good idea to assign a password to the snort user. I didn't see this explicitly done in the 12.04 install guide.
+
 
 echo "we added the snort user and group, the snort user requires a password, please enter a password and confirm this password."
 
@@ -358,9 +373,7 @@ wget http://www.securixlive.com/download/barnyard2/barnyard2-1.9.tar.gz -O barny
 
 tar -xzvf barnyard2.tar.gz
 
-cd firnsy-barnyard2*
-
-autoreconf -fvi -I ./m4
+cd barnyard2*
 
 #remember when we checked if the user is 32 or 64-bit? Well we saved that answer and use it to help find where the mysql libs are on the system.
 
@@ -419,30 +432,29 @@ echo "building barnyard2.conf, pointing to reference.conf, classication.conf, ge
 
 cd /root
 
-cp /usr/local/snort/etc/barnyard2.conf barnyard2.conf.tmp
+cp /usr/local/snort/etc/barnyard2.conf /root/barnyard2.conf.tmp
 
-sed -i 's/config reference_file:      \/etc\/snort\/reference.config/config reference_file:      \/usr\/local\/snort\/etc\/reference.config/' barnyard2.conf.tmp
+sed -i 's/config reference_file:      \/etc\/snort\/reference.config/config reference_file:      \/usr\/local\/snort\/etc\/reference.config/' /root/barnyard2.conf.tmp
 
-sed -i 's/config classification_file: \/etc\/snort\/classification.config/config classification_file: \/usr\/local\/snort\/etc\/classification.config/' barnyard2.conf.tmp
+sed -i 's/config classification_file: \/etc\/snort\/classification.config/config classification_file: \/usr\/local\/snort\/etc\/classification.config/' /root/barnyard2.conf.tmp
 
-sed -i 's/config gen_file:            \/etc\/snort\/gen-msg.map/config gen_file:            \/usr\/local\/snort\/etc\/gen-msg.map/' barnyard2.conf.tmp
+sed -i 's/config gen_file:            \/etc\/snort\/gen-msg.map/config gen_file:            \/usr\/local\/snort\/etc\/gen-msg.map/' /root/barnyard2.conf.tmp
+sed -i 's/config sid_file:            \/etc\/snort\/sid-msg.map/config sid_file:             \/usr\/local\/snort\/etc\/sid-msg.map/' /root/barnyard2.conf.tmp
 
-sed -i 's/config sid_file:            \/etc\/snort\/sid-msg.map/config sid_file:             \/usr\/local\/snort\/etc\/sid-msg.map/' barnyard2.conf.tmp 
-
-sed -i 's/#config hostname:   thor/config hostname: localhost/' barnyard2.conf.tmp
+sed -i 's/#config hostname:   thor/config hostname: localhost/' /root/barnyard2.conf.tmp
 
 echo "what interface will snort be listening on? (choose one interface. While it isn't necessary it is highly recommend you make this a separate interface from the interface you will be managing this sensor (e.g. using ssh to connect to this device) from:"
 
 read snort_iface
 
-sed -i 's/#config interface:  eth0/config interface: '$snort_iface'/' barnyard2.conf.tmp
+sed -i 's/#config interface:  eth0/config interface: '$snort_iface'/' /root/barnyard2.conf.tmp
 
-sed -i 's/#   output database: log, mysql, user=root password=test dbname=db host=localhost/output database: log, mysql user=snort password='$mysql_pass_1' dbname=snort host=localhost/' barnyard2.conf.tmp
+sed -i 's/#   output database: log, mysql, user=root password=test dbname=db host=localhost/output database: log, mysql user=snort password='$mysql_pass_1' dbname=snort host=localhost/' /root/barnyard2.conf.tmp
 
-cp barnyard2.conf.tmp /usr/local/snort/etc/barnyard2.conf
+cp /root/barnyard2.conf.tmp /usr/local/snort/etc/barnyard2.conf
 
 #cleaning up the temp file
-rm barnyard2.conf.tmp
+rm /root/barnyard2.conf.tmp
 
 echo "Would you like to have $snort_iface configured to be up at boot? (useful if you want snort to run on startup.)"
 echo "Select 1 for yes, or 2 for no"

@@ -111,10 +111,20 @@ else
 	echo "yum upgrade failed."
 fi
 
-echo "Installing EPEL repos for required packages."
-wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-7.noarch.rpm
-rpm -Uvh epel-release-6-7.noarch.rpm
+#The EPEL repos are required to install snort, so we download the RPM and import as a quick way to edit available repos on the system, them remove the RPM.
 
+echo "Installing EPEL repos for required packages."
+arch=`uname -i`
+case $arch in
+	i386 )
+		wget http://dl.fedoraproject.org/pub/epel/6/i386/epel-release-6-7.noarch.rpm
+		;;
+	x86_64 )
+		wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-7.noarch.rpm
+		;;
+esac
+rpm -Uvh epel-release-6-7.noarch.rpm
+rm http://dl.fedoraproject.org/pub/epel/6/i386/epel-release-6-7.noarch.rp
 
 echo "Grabbing required packages via yum."
 
@@ -147,6 +157,8 @@ else
 	exit 1
 fi
 
+#for nbtscan to work on snortreport, have to download, compile and put it /usr/bin.
+
 echo "Getting, unpacking and installing nbtscan."
 
 mkdir /usr/src/nbtscan-src
@@ -154,6 +166,7 @@ cd /usr/src/nbtscan-src
 wget http://www.unixwiz.net/tools/nbtscan-source-1.0.35.tgz -O nbtscan-1.0.35.tgz
 tar -xzvf nbtscan-1.0.35.tgz
 make
+cp nbtscan /usr/bin
 
 #Grab jpgraph and throw it in /var/www/html
 #Required to display graphs in snort report UI
@@ -217,58 +230,51 @@ esac
 #get daq libraries from snort.org, drop them in /usr/src, untar, then build them.
 #if a new version of daq comes out, the only thing that needs to be modified here is the download link.
 
-echo "acquiring Data Acquistion Libraries version 1.1.1 (DAQ) from snort.org..."
+echo "acquiring latest version of snort and daq."
+echo ""
 
-cd /usr/src
+cd /tmp 1>/dev/null
+wget -q http://snort.org/snort-downloads -O /tmp/snort-downloads
+snortver=`cat /tmp/snort-downloads | grep snort-[0-9]|cut -d">" -f2 |cut -d"<" -f1 | head -1`
+daqver=`cat /tmp/snort-downloads | grep daq|cut -d">" -f2 |cut -d"<" -f1 | head -1`
+rm /tmp/snort-downloads
+cd /usr/src 1>/dev/null
+wget http://snort.org/dl/snort-current/$snortver -O $snortver
+wget http://snort.org/dl/snort-current/$daqver -O $daqver
 
-#change this download link to get the latest version of daq.snort.org/downloads. right click copy link location. paste below. Profit. Need to find a way to automatically download the latest daq
+echo "Unpacking daq libraries"
+echo ""
 
-wget http://www.snort.org/downloads/1850 -O daqlibs.tar.gz
-tar -xzvf daqlibs.tar.gz
+tar -xzvf $daqver
 cd daq-*
 
-
-
-echo "Configuring, making and compiling. This will take a moment or two."
+echo "Configuring, making and compiling DAQ. This will take a moment or two."
+echo ""
 
 ./configure && make && make install
 
 echo "DAQ libraries installed."
-
-#commenting out the libdnet installation since CENTOS repos seem to have libdnet. Want to see if the version they have works.
-#libdnet hasn't been updated since 2007. Pretty sure we won't have to worry about the filename changing.
-
-#echo "acquiring libdnet 1.12 library from googlecode.com..."
-
-#cd /usr/src
-#wget http://libdnet.googlecode.com/files/libdnet-1.12.tgz
-#tar -xzvf libdnet-1.12.tgz
-#cd libdnet-1.12
-
-#echo "configuring, making, compiling and linking libdnet. This will take a moment or two."
-
-#this is in regards to the fix posted in David Gullett's snort guide, having to link libdnet to get snort to work correctly.
-
-#./configure && make && make install && ln -s /usr/local/lib/libdnet.1.0.1 /usr/lib/libdnet.1
-
-#echo "libdnet installed and linked."
+echo ""
 
 #now we download and build snort itself. The --enable-sourcefire option gives us ppm and perfstats for performance troubleshooting.
 #same as with daq, the download link needs to change if a new version of snort comes out. Go to snort.org/downloads, "copy link location" paste link below into wget statement. Profit.
 #TODO: future-proof this the same way I did above with daq. cd snort-# change the -O statement to snort.tar.gz
 
 echo "acquiring snort from snort.org..."
+echo ""
 
 cd /usr/src
-wget http://www.snort.org/downloads/1862 -O snort-2.9.3.1.tar.gz
-tar -xzvf snort-2.9.3.1.tar.gz
-cd snort-2.9.3.1
+tar -xzvf $snortver
+cd snort-*
 
 echo "configuring snort (options --prefix=/usr/local/snort and --enable-sourcefire), making and installing. This will take a moment or two."
+echo ""
 
 ./configure --prefix=/usr/local/snort --enable-sourcefire && make && make install
 
+
 echo "snort install complete. Installed to /usr/local/snort."
+echo ""
 
 #supporting infrastructure for snort.
 
@@ -281,7 +287,7 @@ echo "creating snort user and group, assigning ownership of /var/log/snort to sn
 #users and groups for snort to run non-priveledged.
 
 groupadd snort
-useradd -g snort snort
+useradd -g snort snort -s /bin/false
 chown snort:snort /var/log/snort
 
 #just as the echo statement says, it's a good idea to assign a password to the snort user. I didn't see this explicitly done in the 6.3 install guide.
@@ -368,13 +374,11 @@ rm snort.conf.tmp
 
 echo "downloading, making and compiling barnyard2."
 
-wget https://nodeload.github.com/firnsy/barnyard2/tarball/master -O barnyard2.tar.gz
+wget http://www.securixlive.com/download/barnyard2/barnyard2-1.9.tar.gz -O barnyard2.tar.gz
 
 tar -xzvf barnyard2.tar.gz
 
-cd firnsy-barnyard2*
-
-sh autogen.sh
+cd barnyard2*
 
 #remember when we checked if the user is 32 or 64-bit? Well we saved that answer and use it to help find where the mysql libs are on the system.
 
@@ -468,7 +472,7 @@ read boot_iface
 
 case $boot_iface in
                 1 )
-                echo "creating /etc/sysconfig/network-scripts/ifcfg-$snort_iface"
+                echo "creating /etc/sysconfig/network-scripts/ifcfg-$snort_iface, and adding line to rc.local"
 				touch /root/ifcfg-$snort_iface.tmp
 				echo "#Settings for snort sensing interface" >> /root/ifcfg-$snort_iface.tmp
 				echo "DEVICE=\"$snort_iface\"" >> /root/ifcfg-$snort_iface.tmp
@@ -476,6 +480,7 @@ case $boot_iface in
 				echo "NM_CONTROLLED=\"no\"" >> /root/ifcfg-$snort_iface.tmp
 				echo "ONBOOT=\"yes\"" >> /root/ifcfg-$snort_iface.tmp
 				echo "TYPE=\"Ethernet\"" >> /root/ifcfg-$snort_iface.tmp
+				#this hack was required for me to get snorts listening interface to come up in promiscuous mode. According to several docs online, adding PROMISC="yes" should have worked in /etc/sysconfig/network-scripts/ifcfg-$snort_iface.... but it didn't.
 				echo "#this line is to make sure snort's sniffing interface comes up at boot in promiscuous mode. we turn off arp and multicast response, because a sniffing interface should not respond to ARP or multicast traffic." >> /etc/rc.local
 				echo "ifconfig $snort_iface up -arp -multicast promisc" >> /etc/rc.local
 				cp /root/ifcfg-$snort_iface.tmp /etc/sysconfig/network-scripts/ifcfg-$snort_iface
@@ -496,8 +501,7 @@ case $startup_choice in
 			1 )
 			echo "adding snort and barnyard2 to rc.local"
 			cp /etc/rc.local /root/rc.local.tmp
-#this is a hack to make the snort interface come up on boot. adding that PROMISC=yes option in ifcfg-[interface]
-#in /etc/sysconfig/network-scripts doesn't work, in spite of everyone saying it should.
+
 
 			echo "#start snort as user/group snort, Daemonize it, read snort.conf and run against $snort_iface" >> /root/rc.local.tmp
 			echo "/usr/local/snort/bin/snort -D -u snort -g snort -c /usr/local/snort/etc/snort.conf -i $snort_iface" >> /root/rc.local.tmp
