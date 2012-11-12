@@ -347,11 +347,11 @@ arch=`uname -a | cut -d" " -f12`
 case $arch in
 		i[36]86)
 		echo "copying 32-bit SO-rules from Ubuntu 10.04 precompiled directory."
-		cp /usr/local/snort/so_rules/precompiled/Ubuntu-10-4/i386/2.9.3.1/* /usr/local/snort/lib/snort_dynamicrules
+		cp /usr/local/snort/so_rules/precompiled/Ubuntu-10-4/i386/2.9.*/* /usr/local/snort/lib/snort_dynamicrules
 		;;
 		x86_64)
 		echo "copying 64-bit SO-rules from Ubuntu 10.04 precompiled directory."
-		cp /usr/local/snort/so_rules/precompiled/Ubuntu-10-4/x86-64/2.9.3.1/* /usr/local/snort/lib/snort_dynamicrules
+		cp /usr/local/snort/so_rules/precompiled/Ubuntu-10-4/x86-64/2.9.*/* /usr/local/snort/lib/snort_dynamicrules
 		;;
 		*)
 		echo "unable to determine architecture from your answer. SO rules have not been copied and will not work until copied. If you would like to do this manually, navigate to /usr/local/snort/so_rules/precompiled, select your distro and arch, and copy the 2.9.3.0/* directories to /usr/local/snort/lib/snort_dynamicrules then run the ldconfig command."

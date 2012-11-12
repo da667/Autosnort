@@ -312,17 +312,17 @@ tar -xzvf $rule_directory/$rule_filename -C /usr/local/snort
 mkdir /usr/local/snort/lib/snort_dynamicrules
 
 # We're running uname -i to determine if the user is running a 32 or 64 bit arch to determine which SO rules to copy.
-# TODO: futureproof the cp statement (e.g. cp 2.9.*/* instead of 2.9.3.0/*)
+
 
 arch=`uname -i`
 case $arch in
 		i386 )
 		echo "copying 32-bit SO-rules from CentOS 10.04 precompiled directory."
-		cp /usr/local/snort/so_rules/precompiled/CentOS-5-4/i386/2.9.3.1/* /usr/local/snort/lib/snort_dynamicrules
+		cp /usr/local/snort/so_rules/precompiled/CentOS-5-4/i386/2.9.*/* /usr/local/snort/lib/snort_dynamicrules
 		;;
 		x86_64 )
 		echo "copying 64-bit SO-rules from CentOS 10.04 precompiled directory."
-		cp /usr/local/snort/so_rules/precompiled/CentOS-5-4/x86-64/2.9.3.1/* /usr/local/snort/lib/snort_dynamicrules
+		cp /usr/local/snort/so_rules/precompiled/CentOS-5-4/x86-64/2.9.*/* /usr/local/snort/lib/snort_dynamicrules
 		;;
 		* )
 		echo "unable to determine architecture. SO rules have not been copied and will not work until copied. If you would like to do this manually, navigate to /usr/local/snort/so_rules/precompiled, select your distro and arch, and copy the 2.9.3.0/* directories to /usr/local/snort/lib/snort_dynamicrules then run the ldconfig command."
