@@ -469,8 +469,8 @@ case $boot_iface in
 		cp /etc/network/interfaces /root/interfaces.tmp
 		echo "#appending $snort_iface to start at boot to run snort on boot on $snort_iface." >> /root/interfaces.tmp
 		echo "auto $snort_iface" >> /root/interfaces.tmp
-		echo "iface $snort_iface inet promisc manual" >> /root/interfaces.tmp
-		echo "up ifconfig $snort_iface up" >> /root/interfaces.tmp
+		echo "iface $snort_iface inet manual" >> /root/interfaces.tmp
+		echo "up ifconfig $snort_iface up promisc -arp -multicast" >> /root/interfaces.tmp
 		cp /root/interfaces.tmp /etc/network/interfaces
 		rm /root/interfaces.tmp
                 ;;
