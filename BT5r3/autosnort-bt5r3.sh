@@ -282,12 +282,8 @@ echo ""
 echo "libdnet installed and linked."
 echo ""
 
-#now we download and build snort itself. The --enable-sourcefire option gives us ppm and perfstats for performance troubleshooting.
-#same as with daq, the download link needs to change if a new version of snort comes out. Go to snort.org/downloads, "copy link location" paste link below into wget statement. Profit.
-#TODO: future-proof this the same way I did above with daq. cd snort-# change the -O statement to snort.tar.gz
+#now we build snort itself. The --enable-sourcefire option gives us ppm and perfstats for performance troubleshooting.
 
-echo "acquiring snort from snort.org..."
-echo ""
 
 cd /usr/src
 tar -xzvf $snortver
