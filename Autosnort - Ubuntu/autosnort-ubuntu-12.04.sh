@@ -28,14 +28,17 @@ install_packages()
 
 # We need to check OS we're installing to, net connectivity, user we are running as, ensure sshd is running and wget is available.
 
-#assumes ubuntu 12.04 checks lsb_release -r and awks the version number to verify what OS we're running.
-#warns the user if we're not running ubuntu 12.04 that this script has not been tested on other platforms/distros
-#asks if they want to continue.
+# checks lsb_release -r and awks the version number to verify what OS we're running.
+# warns the user if we're not running on a supported OS
+# asks if they want to continue.
 echo "OS Version Check."
      release=`lsb_release -r|awk '{print $2}'`
-     if [ $release != "12.04" ]
+     if [ $release = "12.04" -o $release = "12.10" ]
           then
-               echo "This is not Ubuntu 12.04. This script has not been tested on other platforms."
+			   echo "OS Check successful."
+               
+          else
+               echo "This is not Ubuntu 12.04 or 12.10, and has NOT been tested on other platforms."
                while true; do
                    read -p "Continue? (y/n)" warncheck
                    case $warncheck in
@@ -43,9 +46,7 @@ echo "OS Version Check."
                        [Nn]* ) echo "Cancelling."; exit;;
                        * ) echo "Please answer yes or no.";;
                    esac
-done
-          else
-               echo "Version is 12.04. Good to go."
+				done
 		echo " "
      fi
 
