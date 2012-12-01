@@ -126,7 +126,7 @@ echo "Grabbing required packages via apt-get."
 #Here we grab base install requirements for a full stand-alone snort sensor, including web server for web UI. 
 #TODO: Give users a choice -- do they want to install a collector, a full stand-alone sensor, or a barebones sensor install?
 
-declare -a packages=(nmap nbtscan apache2 php5 php5-mysql php5-gd libpcap0.8-dev libpcre3-dev g++ bison flex libpcap-ruby make autoconf libtool);
+declare -a packages=( ethtool nmap nbtscan apache2 php5 php5-mysql php5-gd libpcap0.8-dev libpcre3-dev g++ bison flex libpcap-ruby make autoconf libtool);
 install_packages ${packages[@]}
 
 #Here we download the mysql client/server packages and notify the user that they will need to input a root user password.
@@ -469,6 +469,8 @@ case $boot_iface in
 		echo "up ifconfig $snort_iface up promisc -arp -multicast" >> /root/interfaces.tmp
 		cp /root/interfaces.tmp /etc/network/interfaces
 		rm /root/interfaces.tmp
+		ethtool -K $snort_iface gro off
+		ethtool -K $snort_iface lro off
                 ;;
                 2)
                 echo "okay then, I'll let you do things on your own."
