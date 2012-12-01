@@ -102,9 +102,9 @@ fi
 #Here we call yum -y upgrade to ensure all repos and stock software is fully updated.
 #For consistency, if the command chain exits on anything other than a 0 exit code, we notify the user that updates were not successfully installed.
 
-echo "Performing yum upgrade (with -y switch)"
+echo "Performing yum update (with -y switch)"
 
-yum -y upgrade 
+yum -y update 
 if [ $? -eq 0 ]; then
 	echo "Packages and repos are fully updated."
 else
@@ -124,7 +124,7 @@ case $arch in
 		;;
 esac
 rpm -Uvh epel-release-6-7.noarch.rpm
-rm http://dl.fedoraproject.org/pub/epel/6/i386/epel-release-6-7.noarch.rp
+rm epel-release-6-7.noarch.rpm
 
 echo "Grabbing required packages via yum."
 
@@ -132,7 +132,7 @@ echo "Grabbing required packages via yum."
 #nbtscan, libnet, libdnet and adodb are manual installs. Why
 #TODO: Give users a choice -- do they want to install a collector, a full stand-alone sensor, or a barebones sensor install?
 
-declare -a packages=(nmap httpd make gcc libtool pcre-devel libnet-devel libdnet-devel libpcap-devel mysql mysql-bench mysql-devel mysql-server php php-common php-gd php-cli php-mysql php-pear.noarch php-pear-DB.noarch php-pear-File.noarch flex bison kernel-devel libxml2-devel );
+declare -a packages=( ethtool nmap httpd make gcc libtool pcre-devel libnet-devel libdnet-devel libpcap-devel mysql mysql-bench mysql-devel mysql-server php php-common php-gd php-cli php-mysql php-pear.noarch php-pear-DB.noarch php-pear-File.noarch flex bison kernel-devel libxml2-devel );
 install_packages ${packages[@]}
 
 echo "starting apache and mysql, and adding them to runlevel 3 via chkconfig"
@@ -317,12 +317,12 @@ mkdir /usr/local/snort/lib/snort_dynamicrules
 arch=`uname -i`
 case $arch in
 		i386 )
-		echo "copying 32-bit SO-rules from CentOS 10.04 precompiled directory."
-		cp /usr/local/snort/so_rules/precompiled/CentOS-5-4/i386/2.9.*/* /usr/local/snort/lib/snort_dynamicrules
+		echo "copying 32-bit SO-rules from CentOS 5.4 precompiled directory."
+		cp /usr/local/snort/so_rules/precompiled/Centos-5-4/i386/2.9.*/* /usr/local/snort/lib/snort_dynamicrules/
 		;;
 		x86_64 )
-		echo "copying 64-bit SO-rules from CentOS 10.04 precompiled directory."
-		cp /usr/local/snort/so_rules/precompiled/CentOS-5-4/x86-64/2.9.*/* /usr/local/snort/lib/snort_dynamicrules
+		echo "copying 64-bit SO-rules from CentOS 5.4 precompiled directory."
+		cp /usr/local/snort/so_rules/precompiled/Centos-5-4/x86-64/2.9.*/* /usr/local/snort/lib/snort_dynamicrules/
 		;;
 		* )
 		echo "unable to determine architecture. SO rules have not been copied and will not work until copied. If you would like to do this manually, navigate to /usr/local/snort/so_rules/precompiled, select your distro and arch, and copy the 2.9.3.0/* directories to /usr/local/snort/lib/snort_dynamicrules then run the ldconfig command."
@@ -463,10 +463,10 @@ cp barnyard2.conf.tmp /usr/local/snort/etc/barnyard2.conf
 
 rm barnyard2.conf.tmp
 
-echo "Would you like to have $snort_iface configured to be up at boot? (useful if you want snort to run on startup.)"
+echo "Would you like to have $snort_iface configured to be up at boot? (REQUIRED if you want snort to run on startup.)"
 echo "Select 1 for yes, or 2 for no"
 
-#The choice above determines whether or not we'll be adding an entry to /etc/sysconfig/network-scripts for the snort interface and adding the rc.local hack to bring snort's sniffing interface up at boot.
+#The choice above determines whether or not we'll be adding an entry to /etc/sysconfig/network-scripts for the snort interface and adding the rc.local hack to bring snort's sniffing interface up at boot. We also run ethtool to disable checksum offloading and other nice things modern NICs like to do; per the snort manual, leaving these things enabled causing problems with rules not firing properly.
 
 read boot_iface 
 
@@ -480,11 +480,10 @@ case $boot_iface in
 				echo "NM_CONTROLLED=\"no\"" >> /root/ifcfg-$snort_iface.tmp
 				echo "ONBOOT=\"yes\"" >> /root/ifcfg-$snort_iface.tmp
 				echo "TYPE=\"Ethernet\"" >> /root/ifcfg-$snort_iface.tmp
-				#this hack was required for me to get snorts listening interface to come up in promiscuous mode. According to several docs online, adding PROMISC="yes" should have worked in /etc/sysconfig/network-scripts/ifcfg-$snort_iface.... but it didn't.
-				echo "#this line is to make sure snort's sniffing interface comes up at boot in promiscuous mode. we turn off arp and multicast response, because a sniffing interface should not respond to ARP or multicast traffic." >> /etc/rc.local
-				echo "ifconfig $snort_iface up -arp -multicast promisc" >> /etc/rc.local
 				cp /root/ifcfg-$snort_iface.tmp /etc/sysconfig/network-scripts/ifcfg-$snort_iface
 				rm /root/ifcfg-$snort_iface.tmp
+				ethtool -K $snort_iface gro off
+				ethtool -K $snort_iface lro off
                 ;;
                 2 )
                 echo "okay then, I'll let you do things on your own."
@@ -494,21 +493,32 @@ case $boot_iface in
                 ;;
 esac
 
-echo "Almost there! Do you want snort and barnyard to run at startup? 1 for yes, 2 for no."
+echo "Almost there! Do you want snort and barnyard to run at startup? 1 for yes, 2 for no. Note: if you don't have the snort interface configured to be up at boot, snort will likely error out. If the interface is up and not in promiscuous mode, snort will not get any traffic to inspect."
 read startup_choice
-
+#I embedded an if statement reliant on the previous case statement's outcome because snort and barnyard starting successfully on boot requires the sniffing interface to be up and running as well as running in promisc mode to well, sniff traffic for inspection. If the user made choice that made no sense, I promptly let the user know and default to configuring the interface to be up and promiscuous at bootup.
 case $startup_choice in
 			1 )
 			echo "adding snort and barnyard2 to rc.local"
 			cp /etc/rc.local /root/rc.local.tmp
-
-
-			echo "#start snort as user/group snort, Daemonize it, read snort.conf and run against $snort_iface" >> /root/rc.local.tmp
-			echo "/usr/local/snort/bin/snort -D -u snort -g snort -c /usr/local/snort/etc/snort.conf -i $snort_iface" >> /root/rc.local.tmp
-			echo "/usr/local/bin/barnyard2 -c /usr/local/snort/etc/barnyard2.conf -G /usr/local/snort/etc/gen-msg.map -S /usr/local/snort/etc/sid-msg.map -d /var/log/snort -f snort.u2 -w /var/log/snort/barnyard2.waldo -D" >> /root/rc.local.tmp
-			
-			cp /root/rc.local.tmp /etc/rc.local
-			rm /root/rc.local.tmp
+				if [ $boot_iface = "1" ]
+					then
+						echo "#this line is to make sure snort's sniffing interface comes up at boot in promiscuous mode. we turn off arp and multicast response, because a sniffing interface should not respond to ARP or multicast traffic." >> /root/rc.local.tmp
+						echo "ifconfig $snort_iface up -arp -multicast promisc" >> /root/rc.local.tmp
+						echo "#start snort as user/group snort, Daemonize it, read snort.conf and run against $snort_iface" >> /root/rc.local.tmp
+						echo "/usr/local/snort/bin/snort -D -u snort -g snort -c /usr/local/snort/etc/snort.conf -i $snort_iface" >> /root/rc.local.tmp
+						echo "/usr/local/bin/barnyard2 -c /usr/local/snort/etc/barnyard2.conf -G /usr/local/snort/etc/gen-msg.map -S /usr/local/snort/etc/sid-msg.map -d /var/log/snort -f snort.u2 -w /var/log/snort/barnyard2.waldo -D" >> /root/rc.local.tmp
+						cp /root/rc.local.tmp /etc/rc.local
+						rm /root/rc.local.tmp
+					else
+						echo "you've specified to start barnyard and snort at boot, but not to bring the sniffing interface up in promisc mode at boot. this will not work! I am going to fix this. if this isn't what you want, remove the ifconfig, snort and barnyard entries from /etc/rc.local"
+						echo "#this line is to make sure snort's sniffing interface comes up at boot in promiscuous mode. we turn off arp and multicast response, because a sniffing interface should not respond to ARP or multicast traffic." >> /root/rc.local.tmp
+						echo "ifconfig $snort_iface up -arp -multicast promisc" >> /root/rc.local.tmp
+						echo "#start snort as user/group snort, Daemonize it, read snort.conf and run against $snort_iface" >> /root/rc.local.tmp
+						echo "/usr/local/snort/bin/snort -D -u snort -g snort -c /usr/local/snort/etc/snort.conf -i $snort_iface" >> /root/rc.local.tmp
+						echo "/usr/local/bin/barnyard2 -c /usr/local/snort/etc/barnyard2.conf -G /usr/local/snort/etc/gen-msg.map -S /usr/local/snort/etc/sid-msg.map -d /var/log/snort -f snort.u2 -w /var/log/snort/barnyard2.waldo -D" >> /root/rc.local.tmp
+						cp /root/rc.local.tmp /etc/rc.local
+						rm /root/rc.local.tmp
+				fi
 			;;
 			2 )
 			echo "okay then."
@@ -518,7 +528,6 @@ case $startup_choice in
 			;;
 esac
 
-#todo list: give users the ability to choose 2 interfaces or a bridge interface for inline deployments. Instead of fucking around with daq, just have snort listen to a bridge interface... Well, until I learn to do this properly.
 
 echo "NOTE: the password chosen for the snort user earlier ($mysql_pass_1) will be used to give snort report the ability to read data from the database. record this password for safekeeping!"
 
