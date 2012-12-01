@@ -68,6 +68,7 @@ System/Access requirements:
 1. you will need root access on the system you plan to install snort on, either that or "sudo" access to run this script as root. We do a lot of system administrative tasks to make this script work, so we need system priveleges. There's no way around this, unfortunately.
 2. Internet access - we'll be downloading a lot of things from the wild wild web, so an internet connection is absolutely required
 3. A VRT rules tarball from snort.org (subscriber rules or registered user rules will work fine) MUST BE PRESENT ON THE SYSTEM!
+4. For all operating systems (with the exception of backtrack linux), two dedicated network interfaces are required if you plan on having your server act as a dedicated IDS -- one interface to carry ssh and http/s traffic to/from the sensor and a sniffing interface. the sniffing interface will NOT have an ip address, and will NOT respond to ARP or multicast traffic, effectively preventing anything on the network from talking to the sniffing interface. This is done for opsec reasons. IDS always have dedicated sniffing and dedicated management interfaces.
 
 User input requirements (during the course of the script, you will need to supply the following):
 1. During the mysqld install, you need to supply the root database user's password and confirm it.
