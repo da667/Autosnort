@@ -9,6 +9,8 @@ using pulled pork for rule management has a few requirements:
 
 Other major chances include a lot of fault tolerance improvements in the code -- the script will no longer blindly plow forward if you give it invalid input, leaving you with a broken snort install. If you give the script something invalid or something that doesn't make sense the script loops through the routine until you do.
 
+additionally the short_open_tag as well as SELinux configuration instructions can be performed for you automatically in this version of the script.
+
 questions, as always can be directed to me via email or twitter:
 e-mail deusexmachina667@gmail.com
 twitter @da_667

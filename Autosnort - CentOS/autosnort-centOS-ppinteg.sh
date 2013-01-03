@@ -117,14 +117,14 @@ echo "Installing EPEL repos for required packages."
 arch=`uname -i`
 case $arch in
 	i386 )
-		wget http://dl.fedoraproject.org/pub/epel/6/i386/epel-release-6-7.noarch.rpm
+		wget http://dl.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
 		;;
 	x86_64 )
-		wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-7.noarch.rpm
+		wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
 		;;
 esac
-rpm -Uvh epel-release-6-7.noarch.rpm
-rm epel-release-6-7.noarch.rpm
+rpm -Uvh epel-release-6-8.noarch.rpm
+rm epel-release-6-8.noarch.rpm
 
 echo "Grabbing required packages via yum."
 
@@ -587,8 +587,6 @@ Select 2 to download rules for snort $prevver (Select this if it has been less t
         esac
 done
 
-#here we ask the user where the snortrules snapshot is for us to untar and move it in place.
-#TODO: pulled pork integration
 
 echo "ldconfig processing and creation of whitelist/blacklist.rules files taking place."
 
@@ -737,6 +735,8 @@ sed -i 's/config sid_file:            \/etc\/snort\/sid-msg.map/config sid_file:
 
 sed -i 's/#config hostname:   thor/config hostname: localhost/' /root/barnyard2.conf.tmp
 
+#We have the user decide what interface snort will be listening on. This is setup for the next couple of statements (e.g. if they want the interface up and sniffing at boot, etc.). The first choice here is to pretty up barnyard 2 output)
+
 while true; do
 	read -p "What interface will snort listen on? (please choose only one interface)
 Based on output from ifconfig, here are your choices:
@@ -772,7 +772,7 @@ cp /root/barnyard2.conf.tmp /usr/local/snort/etc/barnyard2.conf
 
 rm /root/barnyard2.conf.tmp
 
-#The choice above determines whether or not we'll be adding an entry to /etc/sysconfig/network-scripts  for the snort interface and adding the rc.local hack to bring snort's sniffing interface up at boot. We also run ethtool to disable checksum offloading and other nice things modern NICs like to do; per the snort manual, leaving these things enabled causes problems with rules not firing properly.
+#The choice above determines whether or not we'll be adding an entry to /etc/sysconfig/network-scripts  for the snort interface and adding the rc.local hack to bring snort's sniffing interface up at boot. We also run ethtool to disable checksum offloading and other nice things modern NICs like to do; per the snort manual, leaving these things enabled causes problems with rules not firing properly. We give the user the choice of not doing this, in the case that they may not have two dedicated network interfaces available.
 
 while true; do
 	read -p "Would you like to have $snort_iface configured to run in promiscuous mode on boot?
@@ -811,6 +811,8 @@ Selecting 2 does nothing and lets you configure things on your own.
         ;;
 	esac
 done
+
+#We ask the user if they want snort and barnyard dropped to rc.local. We also do some fault checking. If they choose to NOT have an interface up and ready for snort at boot, we don't let them start barnyard2 or snort via rc.local (they would just error out anyhow)
 
 while true; do
 	read -p "
