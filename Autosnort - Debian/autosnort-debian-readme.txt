@@ -13,6 +13,8 @@ for the most part, this is a complete clone of the autosnort ubuntu script excep
 	3. Set this directive from Off to On and save php.ini
 	4. Reload or Restart the apache web server (/etc/init.d/apache2 restart)
 
+4. 1/3/2013: pulled pork integration has been integrated into the debian autosnort script. Additionally, short_open_tag configuration has been added to the script as a fix the user can have automatically performed for them.
+
 as always, I can be contacted via twitter:
 @da_667
 
