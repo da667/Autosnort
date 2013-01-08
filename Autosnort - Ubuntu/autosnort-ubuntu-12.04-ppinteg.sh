@@ -460,7 +460,7 @@ Select 2 to download rules for snort $prevver (Select this if it has been less t
 					echo ""
 					#special edits to make sure snort works on reboot
 					cd /tmp
-					tar -xzvf snortrules-snapshot-*
+					tar -xzvf snortrules-snapshot-*.tar.gz
 					#for-do loop to copy the other conf files that need to be present for snort/barnyard
 					for conffiles in `ls -1 /tmp/etc/* | grep -v snort.conf | grep -v sid-msg.map`
 					do cp $conffiles /usr/local/snort/etc
