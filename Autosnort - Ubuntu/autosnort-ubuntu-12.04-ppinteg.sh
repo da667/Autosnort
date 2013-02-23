@@ -469,13 +469,13 @@ Select 2 to download rules for snort $prevver (Select this if it has been less t
 					cp /usr/local/snort/etc/snort.conf /root/snort.conf.tmp
 					cd /root
 					#comment out all includes for *.rules, since the only .rules file we will need are snort and so_rules.rules
-					sed -i 's/include \$RULE\_PATH/#include \$RULE\_PATH/' snort.conf.tmp
+					sed -i 's/include \$RULE\_PATH/#include \$RULE\_PATH/' /root/snort.conf.tmp
 					#we add our snort.rules include...
-					echo "# unified snort.rules entry" >> snort.conf.tmp
-					echo "include \$RULE_PATH/snort.rules" >> snort.conf.tmp
+					echo "# unified snort.rules entry" >> /root/snort.conf.tmp
+					echo "include \$RULE_PATH/snort.rules" >> /root/snort.conf.tmp
 					#and our so_rules.rules stub include...
-					echo "# so rule stub path" >> snort.conf.tmp
-					echo "include \$SO_RULE_PATH/so_rules.rules" >> snort.conf.tmp
+					echo "# so rule stub path" >> /root/snort.conf.tmp
+					echo "include \$SO_RULE_PATH/so_rules.rules" >> /root/snort.conf.tmp
 					#rule processing time
 					cd /usr/src/pulledpork-*
 					perl pulledpork.pl -c /usr/src/pulledpork-*/etc/pulledpork.conf -n #we have the tarball on disk in the temp directory, so we don't want to try and hit snort.org to get it again.
