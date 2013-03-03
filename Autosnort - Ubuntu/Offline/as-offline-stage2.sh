@@ -10,8 +10,10 @@
 #####################################################################################################################################
 #####################################################################################################################################
 
-#determine arch
-arch=`uname -i`
+# determine arch
+arch=`uname -a | cut -d " " -f12`
+# Determine OS. not the cleanest method, but will do for now.
+OS=`cat /etc/issue.net | cut -d " " -f1`
 
 # First things first, we need the stage 1 installer tarball. This tarball has all of the packages .deb and .tar.gz needed for us to
 # get this pig to fly. We ask the user where the autosnort offline tarfile is located, test to make sure it exists, then make sure
@@ -23,7 +25,7 @@ arch=`uname -i`
 
 while true; do
 	read -p "Please enter the directory where the installer tarball is located (no trailing slashes!) " installer_dir
-    read -p "Please enter the name of the tarball (usually AS_offline_ubuntu$arch.tar.gz) " installer_filename
+    read -p "Please enter the name of the tarball (usually AS_offline_$OS$arch.tar.gz) " installer_filename
     test -e $installer_dir/$installer_filename
     if [ $? = 0 ]; then
         echo "tarball found"
@@ -45,15 +47,17 @@ while true; do
 done
 
 # At this point, the entire tarball should be exploded out, and we should be in the directory were the tarball was blown up. We CD into
-# AS_offline_ubuntu$arch/apt_pkgs/archives/ and use the dpkgorder.txt and a for loop to install ALL the packages in the CORRECT order;
+# AS_offline_$OS$arch/apt_pkgs/archives/ and use the dpkgorder.txt and a for loop to install ALL the packages in the CORRECT order;
 # The packages MUST be installed in a certain order for everything to work properly. afterwards, we go into the sources directory and
 # start inflating the source tarballs and installing everything. the order here doesn't generally matter, I don't think. special note:
-# two libraries libdnet and libsfbpf need symlinks from usr/local/lib to /usr/lib otherwise snort will crash and burn.
+# two libraries libdnet and libsfbpf need symlinks from usr/local/lib to /usr/lib otherwise snort will crash and burn on ubuntu operating systems.
 
 # this may take a little bit of time. You'll be prompted for a mysql root username here. also, you'll probably see errors for g++ when it installs.
 # don't worry about the errors.
-cd AS_offline_ubuntu$arch/apt_pkgs/archives
-for packages in `cat dpkgorder$arch.txt`; do dpkg -i $packages; done
+# this is a while/read/do loop instead of the average for/cat/do loop. This is to get around some package weirdness with Debian.
+
+cd AS_offline_$OS$arch/apt_pkgs/archives
+while read packages; do dpkg -i $packages; done < dpkgorder$OS$arch.txt
 
 
 cd ../../sources
@@ -119,6 +123,47 @@ Select 2 if you wish to perform this task manually (Note: this means that the sn
 	esac
 done
 
+#Doing an OS check here. The next bit of code is Debian-specific.
+
+if [ $OS = "Debian" ]; then
+
+# known problem with snort report 1.3.3 not playing nice on systems that have the short_open_tag directive in php.ini set to off. Give the user a choice if they want the script 
+# to automatically resolve this, or if they plan on adding in proper php open tags on their own.
+
+	echo ""
+	echo "Would you like me to to set the short_open_tag directive in php.ini to on for snort report?"
+	echo "Please see http://autosnort.blogspot.com/2012/11/how-to-fix-problems-with-snort-report.html as to why this is important"
+	echo ""
+	while true; do
+		read -p "
+Select 1 for autosnort to enable short_open_tag
+Select 2 to continue if you plan on reconfiguring the php scripts with short open tags manually
+" srecon
+		case $srecon in
+			1 )
+			echo "Reconfiguring php.ini..."
+			echo ""
+			sed -i 's/short\_open\_tag \= Off/short\_open\_tag \= On/' /etc/php5/apache2/php.ini
+			echo ""
+			echo "We're all done here."
+			break
+			;;
+			2 )
+			echo ""
+			echo "Right then, moving on."
+			break
+			;;
+			* )
+			echo ""
+			echo "Invalid choice. Select 1 or 2 as your options, please."
+			;;
+		esac
+	done
+else
+	echo "Not Debian. Continuing."
+	echo ""
+fi
+
 # next up, data acquisition library (DAQ)
 tar -xzvf daq-*.tar.gz
 cd daq-*
@@ -132,7 +177,7 @@ cd libdnet-1.12
 cd ..
 
 # as part of snort install:
-# need to symlink these two libraries on ubuntu. snort doesn't know where to find them by default.
+# need to symlink these two libraries on ubuntu. snort doesn't know where to find them by default. at least on ubuntu.
 ln -s /usr/local/lib/libdnet.1.0.1 /usr/lib/libdnet.1
 ln -s /usr/local/lib/libsfbpf.so.0 /usr/lib/libsfbpf.so.0
 
@@ -179,18 +224,22 @@ while true; do
     fi
 done
 
-arch=`uname -i`
-
-#copy SO rules into the proper directory and grab a copy of snort.conf for some sed-foo magic.
+# Use the $OS and $arch variables to determine what SO rules to copy for use with the snort installation. 
+# If we can't determine arch/os combination, we default to not installing the SO rules at all. Also grabs a copy of snort.conf for some sed-foo modifications.
 
 mkdir /usr/local/snort/lib/snort_dynamicrules
-if [ $arch = "i386" ]; then
-    echo "copying 32-bit SO rules."
-    cp /usr/local/snort/so_rules/precompiled/Ubuntu-12-04/i386/2.9.*/* /usr/local/snort/lib/snort_dynamicrules
-# this should never evaluate to true if you are running this on 32-bit ubuntu, but is being copied for the time being.
-elif [ $arch = "x86_64" ]; then
-    echo "copying 64-bit SO rules."
+if [ $arch = "x86_64" ] && [ $OS = "Debian" ]; then
+	echo "copying $OS 64-bit SO rules."
+	cp /usr/local/snort/so_rules/precompiled/Debian-6-0/x86-64/2.9.*/* /usr/local/snort/lib/snort_dynamicrules
+elif [ $arch = "i686" ] && [ $OS = "Debian" ]; then
+	echo "copying $OS 32-bit SO rules."
+	cp /usr/local/snort/so_rules/precompiled/Debian-6-0/i386/2.9.*/* /usr/local/snort/lib/snort_dynamicrules
+elif [ $arch = "x86_64" ] && [ $OS = "Ubuntu" ]; then
+    echo "copying $OS 64-bit SO rules."
     cp /usr/local/snort/so_rules/precompiled/Ubuntu-12-04/x86-64/2.9.*/* /usr/local/snort/lib/snort_dynamicrules
+elif [ $arch = "i686" ] && [ $OS = "Ubuntu" ]; then
+    echo "copying $OS 32-bit SO rules."
+    cp /usr/local/snort/so_rules/precompiled/Ubuntu-12-04/i386/2.9.*/* /usr/local/snort/lib/snort_dynamicrules
 else
     echo "cannot determine arch. not copying SO rules."
 fi
@@ -236,32 +285,39 @@ rm /root/snort.conf.tmp
 
 #barnyard 2 installation time. From this point on, the script is mostly the same as an online autosnort install.
 
-cd $installer_dir/AS_offline_ubuntu$arch/sources
+cd $installer_dir/AS_offline_$OS$arch/sources
 
 tar -xzvf barnyard2.tar.gz
 
 cd barnyard2*
 
-#remember when we checked if the user is 32 or 64-bit? Well we saved that answer and use it to help find where the mysql libs are on the system.
+# remember when we checked if the user is 32 or 64-bit? Well we saved that answer and use it to help find where the mysql libs are on the system.
+# also going to do a quick OS check here. this allows me to re-use 99% of the code for AS-offline for ubuntu for debian as well.
 
-case $arch in
-                i386)
-                echo "preparing configure statement to point to 32-bit libraries."
-./configure --with-mysql --with-mysql-libraries=/usr/lib/i386-linux-gnu
+if [ $OS = "Debian" ]; then
 
+# this is really just about the only difference between Ubuntu and debian builds. Debian drops the mysql libs in /usr/lib. Ubuntu has to be fancy
+# about it.
 
-                ;;
-                x86_64)
-                echo "preparing configure statement to point to 64-bit libraries"
-./configure --with-mysql --with-mysql-libraries=/usr/lib/x86_64-linux-gnu
+	./configure --with-mysql && make && make install
+	
+else
 
-
-                ;;
-                *)
-                echo "unable to determine architecture from your answer. The configure statement for barnyard needs to know where to find mysql libraries (--with-mysql-libraries=/my/mysqllib/path)"
-		exit 1
-                ;;
-esac
+	case $arch in
+		i686)
+            echo "preparing configure statement to point to 32-bit libraries."
+			./configure --with-mysql --with-mysql-libraries=/usr/lib/i386-linux-gnu
+		;;
+        x86_64)
+			echo "preparing configure statement to point to 64-bit libraries"
+			./configure --with-mysql --with-mysql-libraries=/usr/lib/x86_64-linux-gnu
+			;;
+        *)
+			echo "unable to determine architecture from your answer. The configure statement for barnyard needs to know where to find mysql libraries (--with-mysql-libraries=/my/mysqllib/path)"
+			exit 1
+        ;;
+	esac
+fi
 
 make && make install
 
@@ -448,7 +504,7 @@ done
 
 #create an updated sid-msg.map with all snort rules in it.
 
-perl $installer_dir/AS_offline_ubuntu$arch/sources/create-sidmap.pl /usr/local/snort/rules/ /usr/local/snort/so_rules > /usr/local/snort/etc/sid-msg.map
+perl $installer_dir/AS_offline_$OS$arch/sources/create-sidmap.pl /usr/local/snort/rules/ /usr/local/snort/so_rules > /usr/local/snort/etc/sid-msg.map
 
 echo "NOTE: the password chosen for the snort user earlier ($mysql_pass_1) will be used to give snort report the ability to read data from the database. record this password for safekeeping!"
 

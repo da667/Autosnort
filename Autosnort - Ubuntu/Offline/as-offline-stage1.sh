@@ -10,12 +10,13 @@
 #####################################################################################################################################
 #####################################################################################################################################
 
-#determine arch
-arch=`uname -i`
+# determine arch. Much uglier work-around to support Debian here.
+arch=`uname -a | cut -d " " -f12`
+# determine OS. not the cleanest method... but it works.
+OS=`cat /etc/issue.net | cut -d " " -f1`
 
 # This exists for idiot proofing. The script uses wget extensively, so I want to make sure it's there. I'm not going to bother
 # Checking for apt-get or dpkg because it should be there. Not going to hand-hold THAT much.
-
 
 
 which wget 2>&1 >> /dev/null
@@ -33,16 +34,31 @@ fi
 # only download the packages -o sets the script's cache directory to our newly created cache directory. the subdirectories need to be 
 # there otherwise apt will bitch and complain.
 
-mkdir -p AS_offline_ubuntu$arch/apt_pkgs/archives/partial
+mkdir -p AS_offline_$OS$arch/apt_pkgs/archives/partial
 
+# Debian needs access to particiular apt repos to pull the required packages. We're doing a check here to see if the host OS is Debian.
+# Then adding the repos in question and pulling the GPG key if the host OS is Debian.
+
+if [ $OS = "Debian" ]; then
+	echo "adding deb and deb-src via http://packages.dotdeb.org to apt sources."
+	echo "# the below lines are added via autosnort to ensure a successful snort installation." >> /etc/apt/sources.list
+	echo "deb http://packages.dotdeb.org squeeze all" >> /etc/apt/sources.list
+	echo "deb-src http://packages.dotdeb.org squeeze all" >> /etc/apt/sources.list
+	echo "adding packages.dotdeb.org gpg key."
+	wget http://www.dotdeb.org/dotdeb.gpg && cat dotdeb.gpg | apt-key add -
+else
+	echo "Not Debian. Moving on."
+	echo ""
+fi
 apt-get update
-apt-get install -y -d -o dir::cache=./AS_offline_ubuntu$arch/apt_pkgs ethtool nmap nbtscan apache2 php5 php5-mysql php5-gd libpcap0.8-dev libpcre3-dev g++ bison flex libpcap-ruby make autoconf libtool mysql-server libmysqlclient-dev linux-libc-dev
+apt-get install -y -d -o dir::cache=./AS_offline_$OS$arch/apt_pkgs ethtool nmap nbtscan apache2 php5 php5-mysql php5-gd libpcap0.8-dev libpcre3-dev g++ bison flex libpcap-ruby make autoconf libtool mysql-server libmysqlclient-dev linux-libc-dev libxpm4
 
+ 
 
 # Next, we need to download our source packages. we drop these in a sources directory. grabs: barnyard2, snort, daq, libdnet, snortreport, and jpgraph
 
-mkdir AS_offline_ubuntu$arch/sources
-cd AS_offline_ubuntu$arch/sources
+mkdir AS_offline_$OS$arch/sources
+cd AS_offline_$OS$arch/sources
 
 # Handy quick and dirty way to determine the latest stable release versions of snort and daq, then download them.
 wget -q http://snort.org/snort-downloads -O /tmp/snort-downloads
@@ -63,9 +79,9 @@ cd ../..
 # packages installed via the apt-get line above. They MUST be installed in the order presented in this file.
 # create-sidmap.pl is not mandatory to have, but if you want to know what snort alert 23455 is named, you'll include it.
 
-cp dpkgorder$arch.txt AS_offline_ubuntu$arch/apt_pkgs/archives/
-cp create-sidmap.pl AS_offline_ubuntu$arch/sources
-tar -cvzf AS_offline_ubuntu$arch.tar.gz  AS_offline_ubuntu$arch/
+cp dpkgorder$OS$arch.txt AS_offline_$OS$arch/apt_pkgs/archives/
+cp create-sidmap.pl AS_offline_$OS$arch/sources
+tar -cvzf AS_offline_$OS$arch.tar.gz  AS_offline_$OS$arch/
 
 # as part of snort install:
 # need to symlink these two libraries on ubuntu. snort doesn't know where to find them by default.
