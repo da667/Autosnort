@@ -17,26 +17,24 @@ install_packages()
 
 # We need to check OS we're installing to, net connectivity, user we are running as, ensure sshd is running and wget is available.
 
-#assumes Debian 6.0.6 checks lsb_release -r and awks the version number to verify what OS we're running.
-#warns the user if we're not running ubuntu 12.04 that this script has not been tested on other platforms/distros
-#asks if they want to continue.
+#assumes Debian checks /etc/issue.net to verify the OS. if issue.net has been modified, the script gives the user an option to continue.
+
 echo "OS Version Check."
-     release=`lsb_release -r|awk '{print $2}'`
-     if [ $release != "6.0.6" ]
-          then
-               echo "This is not Debian $release. This script has not been tested on other platforms."
-               while true; do
-                   read -p "Continue? (y/n)" warncheck
-                   case $warncheck in
-                       [Yy]* ) break;;
-                       [Nn]* ) echo "Cancelling."; exit;;
-                       * ) echo "Please answer yes or no.";;
-                   esac
-done
-          else
-               echo "Version is 6.0.6. Good to go."
+    OS=`cat /etc/issue.net | cut -d " " -f1`
+    if [ $OS != "Debian" ]; then
+        echo "This is not Debian. This script has not been tested on other platforms, and is designed solely for Debian systems."
+            while true; do
+                read -p "Continue? (y/n)" warncheck
+                case $warncheck in
+                    [Yy]* ) break;;
+                    [Nn]* ) echo "Cancelling."; exit;;
+                    * ) echo "Please answer yes or no.";;
+                esac
+			done
+    else
+        echo "OS is Debian. Good to go."
 		echo " "
-     fi
+    fi
 
 #Connectivity check uses icmp, pings google once and checks for exit 0 status of the command. 
 #Exits script on error and notifies user connectivity check failed.
@@ -144,10 +142,11 @@ echo "downloading and installing snort report"
 cd /usr/src
 wget http://www.symmetrixtech.com/ids/snortreport-1.3.3.tar.gz
 tar -xzvf snortreport-1.3.3.tar.gz -C /var/www/
+mv /var/www/snortreport-1.3.3 /var/www/snortreport
 
 #For snortreport to work it needs the username and password for the snort mysql user.
 
-echo "You will need to Enter the mysql database password for the database user \"snort\" (we have not created the regular snort user or snort database user yet, we will be doing so shortly) in the file /var/www/snortreport-1.3.3/srconf.php on the line \"\$pass = \"YOURPASS\";"
+echo "You will need to Enter the mysql database password for the database user \"snort\" (we have not created the regular snort user or snort database user yet, we will be doing so shortly) in the file /var/www/snortreport/srconf.php on the line \"\$pass = \"YOURPASS\";"
 echo "I will give you the choice of doing this yourself, or having me do it for you."
 
 #adding a bit of fault tolerance here by dropping this entire section into a while true loop.
@@ -169,9 +168,9 @@ Select 2 if you wish to perform this task manually (Note: this means that the sn
 		if [ "$mysql_pass_1" == "$mysql_pass_2" ]; then
 			echo "password confirmed."
 			echo "modifying srconf.php..."
-			cp /var/www/snortreport-1.3.3/srconf.php /root/srconf.php.tmp
+			cp /var/www/snortreport/srconf.php /root/srconf.php.tmp
 			sed -i 's/YOURPASS/'$mysql_pass_1'/' /root/srconf.php.tmp
-			cp /root/srconf.php.tmp /var/www/snortreport-1.3.3/srconf.php
+			cp /root/srconf.php.tmp /var/www/snortreport/srconf.php
 			rm /root/srconf.php.tmp
 			echo "password insertion complete."
 			echo ""
@@ -595,11 +594,15 @@ echo "downloading, making and compiling barnyard2."
 
 cd /usr/src
 
-wget http://www.securixlive.com/download/barnyard2/barnyard2-1.9.tar.gz -O barnyard2.tar.gz
+wget https://github.com/firnsy/barnyard2/archive/master.tar.gz -O barnyard2.tar.gz
 
 tar -xzvf barnyard2.tar.gz
 
 cd barnyard2*
+
+#need to run autoreconf before we can compile it.
+
+autoreconf -fvi -I ./m4
 
 #determining arch for barnyard2 on debian appears to be pointless; libmysqlclient gets installed to /usr/lib on both 32 and 64-bit debian.
 

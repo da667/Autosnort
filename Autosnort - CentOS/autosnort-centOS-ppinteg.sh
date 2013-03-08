@@ -132,7 +132,7 @@ echo "Grabbing required packages via yum."
 #nbtscan, libnet, libdnet and adodb are manual installs. Why
 #TODO: Give users a choice -- do they want to install a collector, a full stand-alone sensor, or a barebones sensor install?
 
-declare -a packages=( ethtool nmap httpd make gcc libtool pcre-devel libnet-devel libdnet-devel libpcap-devel mysql mysql-bench mysql-devel mysql-server php php-common php-gd php-cli php-mysql php-pear.noarch php-pear-DB.noarch php-pear-File.noarch flex bison kernel-devel libxml2-devel );
+declare -a packages=( ethtool nmap httpd make gcc libtool pcre-devel libnet-devel libdnet-devel libpcap-devel mysql mysql-bench mysql-devel mysql-server php php-common php-gd php-cli php-mysql php-pear.noarch php-pear-DB.noarch php-pear-File.noarch flex bison kernel-devel autoconf libxml2-devel );
 install_packages ${packages[@]}
 
 echo "starting apache and mysql, and adding them to runlevel 3 via chkconfig"
@@ -190,11 +190,11 @@ echo "downloading and installing snort report"
 cd /usr/src
 wget http://www.symmetrixtech.com/ids/snortreport-1.3.3.tar.gz
 tar -xzvf snortreport-1.3.3.tar.gz -C /var/www/html
-
+mv /var/www/html/snortreport-1.3.3 /var/www/html/snortreport
 
 #For snortreport to work it needs the username and password for the snort mysql user.
 
-echo "You will need to Enter the mysql database password for the database user \"snort\" (we have not created the regular snort user or snort database user yet, we will be doing so shortly) in the file /var/www/snortreport-1.3.3/srconf.php on the line \"\$pass = \"YOURPASS\";"
+echo "You will need to Enter the mysql database password for the database user \"snort\" (we have not created the regular snort user or snort database user yet, we will be doing so shortly) in the file /var/www/snortreport/srconf.php on the line \"\$pass = \"YOURPASS\";"
 echo "I will give you the choice of doing this yourself, or having me do it for you."
 
 #adding a bit of fault tolerance here by dropping this entire section into a while true loop.
@@ -216,9 +216,9 @@ Select 2 if you wish to perform this task manually (Note: this means that the sn
 		if [ "$mysql_pass_1" == "$mysql_pass_2" ]; then
 			echo "password confirmed."
 			echo "modifying srconf.php..."
-			cp /var/www/html/snortreport-1.3.3/srconf.php /root/srconf.php.tmp
+			cp /var/www/html/snortreport/srconf.php /root/srconf.php.tmp
 			sed -i 's/YOURPASS/'$mysql_pass_1'/' /root/srconf.php.tmp
-			cp /root/srconf.php.tmp /var/www/html/snortreport-1.3.3/srconf.php
+			cp /root/srconf.php.tmp /var/www/html/snortreport/srconf.php
 			rm /root/srconf.php.tmp
 			echo "password insertion complete."
 			echo ""
@@ -260,7 +260,7 @@ Select 2 to continue if you plan on reconfiguring SELinux manually and/or the ph
 		echo "Reconfiguring SELinux to allow httpd r/w access to snort report directory"
 		echo ""
 		cd /var/www/html
-		chcon -R -t httpd_sys_rw_content_t snortreport-1.3.3/
+		chcon -R -t httpd_sys_rw_content_t snortreport/
 		echo ""
 		echo "We're all done here. Don't forget to reconfigure CentOS' firewall (system-configure-firewall-tui) to allow your web server port inbound!"
 		break
@@ -632,11 +632,15 @@ echo "downloading, making and compiling barnyard2."
 #should probably try to see if I can do magic to determine the latest stable release of by2 as well.
 #http://www.securixlive.com/barnyard2/download.php
 
-wget http://www.securixlive.com/download/barnyard2/barnyard2-1.9.tar.gz -O barnyard2.tar.gz
+wget https://github.com/firnsy/barnyard2/archive/master.tar.gz -O barnyard2.tar.gz
 
 tar -xzvf barnyard2.tar.gz
 
 cd barnyard2*
+
+#need to run autoreconf before we can compile it.
+
+autoreconf -fvi -I ./m4
 
 #remember when we checked if the user is 32 or 64-bit? Well we saved that answer and use it to help find where the mysql libs are on the system.
 

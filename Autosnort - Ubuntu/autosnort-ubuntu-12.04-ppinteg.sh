@@ -7,7 +7,7 @@
 #made checks for 32 v 64-bit arch automated via uname -i (Thanks kyle!)
 #v3 fixes:
 #Major thanks to Andy Walker - Sourcefire VRT for code contributions to this version
-#Removed sleep and clear statements from the script per discussion regarding this script, this could result in a missed prompr or missed errors. agreed to remove sleep statements for speed, and clear statements to ensure all data is captured by the user.
+#Removed sleep and clear statements from the script per discussion regarding this script, this could result in a missed prompt or missed errors. agreed to remove sleep statements for speed, and clear statements to ensure all data is captured by the user.
 # purpose: from nothing to full snort in gods know how much time it takes to compile some of this shit.
 #at some point, I want this script to log to something for error reporting.
 
@@ -164,11 +164,12 @@ echo "downloading and installing snort report"
 cd /usr/src
 wget http://www.symmetrixtech.com/ids/snortreport-1.3.3.tar.gz
 tar -xzvf snortreport-1.3.3.tar.gz -C /var/www/
+mv /var/www/snortreport-1.3.3 /var/www/snortreport
 
 #this portion of the script gives the user a choice to modify srconf.php automatically or doing it themselves. 
 #For snortreport to work it needs the username and password for the snort mysql user.
 
-echo "You will need to Enter the mysql database password for the database user \"snort\" (we have not created the regular snort user or snort database user yet, we will be doing so shortly) in the file /var/www/snortreport-1.3.3/srconf.php on the line \"\$pass = \"YOURPASS\";"
+echo "You will need to Enter the mysql database password for the database user \"snort\" (we have not created the regular snort user or snort database user yet, we will be doing so shortly) in the file /var/www/snortreport/srconf.php on the line \"\$pass = \"YOURPASS\";"
 echo "I will give you the choice of doing this yourself, or having me do it for you."
 echo ""
 
@@ -191,9 +192,9 @@ Select 2 if you wish to perform this task manually (Note: this means that the sn
 		if [ "$mysql_pass_1" == "$mysql_pass_2" ]; then
 			echo "password confirmed."
 			echo "modifying srconf.php..."
-			cp /var/www/snortreport-1.3.3/srconf.php /root/srconf.php.tmp
+			cp /var/www/snortreport/srconf.php /root/srconf.php.tmp
 			sed -i 's/YOURPASS/'$mysql_pass_1'/' /root/srconf.php.tmp
-			cp /root/srconf.php.tmp /var/www/snortreport-1.3.3/srconf.php
+			cp /root/srconf.php.tmp /var/www/snortreport/srconf.php
 			rm /root/srconf.php.tmp
 			echo "password insertion complete."
 			echo ""
@@ -587,11 +588,15 @@ echo "downloading, making and compiling barnyard2."
 
 cd /usr/src
 
-wget http://www.securixlive.com/download/barnyard2/barnyard2-1.9.tar.gz -O barnyard2.tar.gz
+wget https://github.com/firnsy/barnyard2/archive/master.tar.gz -O barnyard2.tar.gz
 
 tar -xzvf barnyard2.tar.gz
 
 cd barnyard2*
+
+#need to run autoreconf before we can compile it.
+
+autoreconf -fvi -I ./m4
 
 #remember when we checked if the user is 32 or 64-bit? Well we saved that answer and use it to help find where the mysql libs are on the system.
 
