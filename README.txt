@@ -13,24 +13,23 @@ A: Autosnort is a shell script that will perform all of the dirty work of a snor
 
 1. A fresh install of Snort with --enable-sourcefire for performance profiling.
 2. A fresh install of Barnyard 2
-3. A fresh install of snortreport for you to retrieve intrusion events.
+3. A fresh install of web interface of your choose (current choices include snortreport and aanval, with more to come)
 
 Q:What does the script do to my system?
 
 A: Quite a number of things:
 
-1. Downloads pre-requisite packages, services, and dependencies as a part of the installation process.
-2. Sets up mysql and apache (including setting the root mysql user password and the snort mysql user's password)
-2. Runs an apt-get update and upgrade to ensure the system is fully updated before doing the snort installation.
-3. Polls snort.org/snort-downloads, determines latest stable source for DAQ and snort, then downloads and compiles them.
-3. Handles creation of several directories, modification of configuration files, and creation of the unpriveleged snort user for the snort process to run as.
-4. Adds entries to rc.local for snort and barnyard to run at boot against a chosen sniffing interface
+1. Performs a system update before beginning the installation
+2. Downloads all the required packages (and dependencies) via your operating system's package manager for a fully functional IDS and Web Interface installation
+3. Compiles libdnet, daq, snort, and barnyard2 (and other tools as required) from source
+4. Automatically downloads the latest rules for snort via pulled pork
+5. Fully configures snort, httpd, mysql, barnyard2 and the web interface you choose to sniff network traffic and report events to your web interface
 
 Q:What software is downloaded and installed by Autosnort?
 
-A:There are several software packages required to install snortreport, and compile snort and barnyard and depending on the distro you are running Autosnort on, they go by different names.
+A: It varies depending on the OS distribution you are using, and the functionality you choose to install.
 
-Here are the packages that are downloaded by autosnort (not including dependencies) by their general names:
+Here are SOME of the packages that are downloaded by autosnort (not including dependencies) by their general names:
 
 Any and all System updates for your distro of choice
 nmap 
@@ -51,11 +50,10 @@ libtool
 mysql-server
 libmysqlclient-dev
 libdnet
-Daq Libraries (The stable release, which, as of this writing is libdaq 1.1.1)
-Snort (The stable release, which, as of this writing is snort 2.9.3.1)
+Daq Libraries
+Snort
 Barnyard2
-jpgraph
-snortreport
+
 
 If you want more granular details, the shell script is meticulously commented and is relatively easy to understand if you have any experience with shell scripting.
 
@@ -66,45 +64,10 @@ A:I've listed what access the script needs, what file(s) need to be present for 
 
 System/Access requirements:
 1. you will need root access on the system you plan to install snort on, either that or "sudo" access to run this script as root. We do a lot of system administrative tasks to make this script work, so we need system priveleges. There's no way around this, unfortunately.
-2. Internet access - we'll be downloading a lot of things from the wild wild web, so an internet connection is absolutely required
-3. A VRT rules tarball from snort.org (subscriber rules or registered user rules will work fine) MUST BE PRESENT ON THE SYSTEM!
-4. For all operating systems (with the exception of backtrack linux), two dedicated network interfaces are required if you plan on having your server act as a dedicated IDS -- one interface to carry ssh and http/s traffic to/from the sensor and a sniffing interface. the sniffing interface will NOT have an ip address, and will NOT respond to ARP or multicast traffic, effectively preventing anything on the network from talking to the sniffing interface. This is done for opsec reasons. IDS always have dedicated sniffing and dedicated management interfaces.
+2. Internet access - we'll be downloading a lot of things from the wild wild web, so an internet connection is absolutely required. I would advise that you ensure that http, https and ftp access to the internet are allowed from the system you are attempting to configure with autosnort to ensure all required items can be downloaded successfully.
 
-User input requirements (during the course of the script, you will need to supply the following):
-1. During the mysqld install, you need to supply the root database user's password and confirm it.
-2. During the installation of snortreport, the file srconf.php needs credentials for the database user, snort (Just a password and the confirmation). The snort mysql user is required to retrieve data from the mysql database and display it via the web interface, snortreport. I also give you the option of modifying srconf.php yourself if you don't want the script to do this portion. After installation, it will be located in /var/www/snortreport-1.3.3/srconf.php (Note: this step MUST be done for snortreport to run properly!)
-3. The password and confirmation for the regular snort user (note: this user is SEPARATE from the snort database user, as in, I wouldn't use the same password twice!)
-4. The directory (without the trailing "/") and
-5. The name of the VRT rules tarball on the system (the script will NOT download the rules tarball for you -- pulled pork integration is an eventual goal, however.)
-6. The interface you want snort to run on (modifies /etc/network/interfaces to bring the interface up at boot in promiscuous mode)
-7. Whether or not you want snort and barnyard added to /etc/rc.local to run on system start
-8. Whether or not you want the system rebooted at the end of the script (highly recommended)
+3. For all operating systems (with the exception of backtrack linux), two dedicated network interfaces are required if you plan on having your server act as a dedicated IDS -- one interface to carry ssh and http/s traffic to/from the sensor (aka your "management" interface) and a sniffing interface. the sniffing interface will NOT have an ip address, and will NOT respond to ARP or multicast traffic, effectively preventing anything on the network from talking to the sniffing interface. This is done for opsec reasons. An IDS should always have dedicated sniffing and dedicated management interfaces.
 
-as an example for items 4 and 5 above, if the file was: /home/da_667/snortrules-snapshot-2931.tar.gz you would do the following:
-
-enter the directory: /home/da_667
-enter the name of the rules file: snortrules-snapshot-2931.tar.gz
-
-note:it is essential that you perform steps 4 and 5 with complete accuracy to ensure the snort rules are unpacked properly and moved to the proper location for snort to reference them while it is running.
-
-Q: What happens if I don't give the script a VRT rules tarball or I mistyped the location of the rules tarball?
-
-A: Snort will still install just fine, you just won't have any rules to run against. This can be fixed in a few ways:
-	1) register to snort.org, download the tarball for the version of snort you have, re-run the entire script, and when prompted, point the script to the tarball.
-	2) register on snort.org, download the rules tarball for the version of snort you have, copy lines 335 - 404 in the script, drop them into their own shell script and run it.
-	3) manually perform the actions below:
-		download a rules tarball from snort.org (sign up for a free account and download rules for your installed version
-		to determine the version of snort you are running try the command: /usr/local/snort/bin/snort -V (gives you the version of snort installed)
-		untar the rule snapshot you downloaded to /usr/local/snort:
-		tar -xzvf snortrules-snapshot-xxxx.tar.gz -C /usr/local/snort
-		for 32-bit backtrack, copy these files to /usr/local/snort/lib/snort_dynamicrules:
-		cp /usr/local/snort/so_rules/precompiled/Ubuntu-10-4/i386/x.x.x.x/* /usr/local/snort/lib/snort_dynamicrules
-		for 64-bit backtrack, copy these files instead:
-		cp /usr/local/snort/so_rules/precompiled/Ubuntu-10-4/i386/x.x.x.x/* /usr/local/snort/lib/snort_dynamicrules
-		run this command:
-		touch /usr/local/snort/rules/white_list.rules && touch /usr/local/snort/rules/black_list.rules && ldconfig
-		lines 373 - 404 (aka the remaining steps): modify /usr/local/snort/etc/snort.conf to suit your snort install and point to your .rules files (e.g. the files in /usr/local/snort/rules/)
-I should probably have some sort of a test condition or validation that checks if the file user inputs exists, and this will likely occur in the future to protect against users fat fingering this part, but for right now, just be careful.
 
 Q: Where does the script install snort, the snort.conf, rule files, etc. ?
 
@@ -112,8 +75,10 @@ A: The script installs snort to /usr/local/snort/. the actual snort binary is in
 
 Q: I don't feel like typing out "/usr/local/snort/bin/snort" every time I want to run snort manually. This is going to get really annoying really fast.
 
-A: By default, most Linux distros uses the BASH shell. Every bashes will read certain files from your home directory called rc or profile files. For BASH, these files are usually .bashrc, .bash_profile, among others. In the rc file, you can modify your system's PATH variable and include /usr/local/snort/bin in the PATH. if you want to do this quickly without logging out and/or logging in again, try this:
+A: By default, most Linux distros use the BASH shell. Every bashes will read certain files from your home directory called rc or profile files. For BASH, these files are usually .bashrc, .bash_profile, among others. In the rc file, you can modify your system's PATH variable and include /usr/local/snort/bin in the PATH. if you want to do this quickly without logging out and/or logging in again, try this:
 echo "export PATH=$PATH:/usr/local/snort/bin" >> ~/.bashrc && source ~/.bashrc -- this adds the line to .bashrc in root's home and tells your shell to reload it on the fly.
+
+alternatively, you can symlink the /usr/local/snort/bin/snort directory to a directory that is already on the PATH variable (/bin, /usr/sbin, etc.)
 
 Q:*How* do I run this script
 
@@ -131,15 +96,15 @@ Most importantly I chose to do this to bring snort to more people. A lot of crit
 
 Q: Why snortreport? Why not snorby or squil or [...]
 
-A: This script is a proof of concept, and a baseline at this point. I chose snortreport for ease of install and readily available instructions via snort.org. As time moves on, I plan on adding options for the user to select a web front-end from a series of choices, or to just log alerts to syslog for collection to a SIEM.
+A: I chose snortreport for ease of install and readily available instructions via snort.org. As time moves on, I plan on adding options for the user to select a web front-end from a series of choices, or to just log alerts to syslog for collection to a SIEM.
 
 Q: Dude, this script sucks. I could do this in half a day, in [insert scripting/programming language] blindfolded and with [x] functionality integrated.
 
 A: So my script sucks. Tell me what sucks about it, and how you would improve it instead of straw man arguments against me.. I'm not much of a programmer obviously, so help me out --  not to benefit me but to benefit the Open-Source and snort community in general.
 
-Q: What distros do you support? What distros do you plan on supporting
+Q: What distros do you support? What distros do you plan on supporting?
 
-A: Currently I support all of the operating systems listed in the github repo. So, to date that is: Ubuntu 12.04LTS, CentOS 6.3, and Backtrack 5 r3. For all supported operating systems this includes 32-bit and 64-bit support. If you choose to run the script on an earlier version of a supported operating system, I *may* be able to assist you, but this is NOT any kind of a garantee. If you ran the script on an earlier version of a supported operating system and it works, please let me know! If you ran into problems, at least let me know what problems you came across!
+A: Currently I support all of the operating systems listed in the github repo. So, to date that is: Ubuntu 12.04+, CentOS 6.3+, Debian 6+ and Backtrack 5 r3. For all supported operating systems this includes 32-bit and 64-bit support. If you choose to run the script on an earlier version of a supported operating system, I *may* be able to assist you, but this is NOT any kind of a garantee. If you ran the script on an earlier version of a supported operating system and it works, please let me know! If you ran into problems, at least let me know what problems you came across!
 
 Q: So you mentioned a bit of a to-do list. You're releasing a half-baked script?
 
@@ -153,7 +118,6 @@ A: No, put down the pitchforks. I want to add some enhancements and additional f
 
 4. Add support for inline installs either through guided installation and configuration of bridge-utils, or through proper use of the snort daq, maybe even pf_ring if I can figure out how the hell pf_ring works.
 
-5. Add support for running pulled pork to create a base ruleset, instead of defaulting to all rules on.
 
 I think this is enough of a list combined with getting the script to run on other distros to keep me busy for a long time. If there's functionality you would see added, by all means, offer your suggestions, my contact information is up top.
 
