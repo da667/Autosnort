@@ -126,7 +126,7 @@ echo "Grabbing required packages via apt-get."
 #Here we grab base install requirements for a full stand-alone snort sensor, including web server for web UI. 
 #TODO: Give users a choice -- do they want to install a collector, a full stand-alone sensor, or a barebones sensor install?
 
-declare -a packages=( ethtool nmap nbtscan apache2 php5 php5-mysql php5-gd libpcap0.8-dev libpcre3-dev g++ bison flex libpcap-ruby make autoconf libtool);
+declare -a packages=( ethtool nmap nbtscan apache2 php5 php5-mysql php5-gd libpcap0.8-dev libpcre3-dev g++ bison flex libpcap-ruby make autoconf libtool libwww-perl libcrypt-ssleay-perl);
 install_packages ${packages[@]}
 
 #Here we download the mysql client/server packages and notify the user that they will need to input a root user password.
@@ -262,7 +262,7 @@ select 2 for pulled pork installation and setup.
 						echo "untar successful"
 						echo ""
 					fi
-                    mkdir /usr/local/snort/lib/snort_dynamicrules
+                    mkdir -p /usr/local/snort/lib/snort_dynamicrules
                     if [ $arch = "i386" ]; then
                         echo "copying 32-bit SO rules."
                         cp /usr/local/snort/so_rules/precompiled/Ubuntu-12-04/i386/2.9.*/* /usr/local/snort/lib/snort_dynamicrules
@@ -292,11 +292,11 @@ select 2 for pulled pork installation and setup.
 # the other two variables, currentver and prevver are for the entire pulled pork sub section. Let me down there to explain what's going on.
 			2 )
             echo "chose pp"
-			mkdir /usr/local/snort/etc
-			mkdir /usr/local/snort/so_rules
-			mkdir /usr/local/snort/rules
-			mkdir /usr/local/snort/preproc_rules
-			mkdir /usr/local/snort/lib/snort_dynamicrules
+			mkdir -p /usr/local/snort/etc
+			mkdir -p /usr/local/snort/so_rules
+			mkdir -p /usr/local/snort/rules
+			mkdir -p /usr/local/snort/preproc_rules
+			mkdir -p /usr/local/snort/lib/snort_dynamicrules
 			#download the latest snort-rules page. We're setting four variables, two for pulled pork, and two to download a valid snort.conf from labs.snort.org - we need a snort.conf in place for pulledpork to generate so rule stubs.
 			wget -q http://www.snort.org/snort-rules -O /tmp/snort-rules
 			currentverconf=`cat /tmp/snort-rules  | grep snortrules-snapshot-[0-9][0-9][0-9][0-9]|cut -d"-" -f3 |cut -d"." -f1 | sort -ur | head -1` #snort.conf download attempt 1
