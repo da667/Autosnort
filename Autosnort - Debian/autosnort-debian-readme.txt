@@ -2,7 +2,30 @@
 autosnort-Debian Release Notes
 ##############################
 
-Current Release: autosnort-debian-03-30-2013.sh
+Current Release: autosnort-debian-04-14-2013.sh
+
+Release Notes:
+
+- No new functionality added
+
+Bug Fixes:
+
+- Fixed a bug observed with Barnyard 2. Apparently specifying an argument on the command line as well as via its .conf file causes Barnyard2 to crash with a FATAL ERROR stating you can't do this anymore. Not sure when this change was implemented, but I've modified this version of autosnort script to reflect this change. As a direct result of this, the sid-msg.map and gen-msg.map files are specified via the barnyard2.conf file and not via the command line -S and -G options any longer.
+
+Other Notes:
+
+- CentOS users have been enjoying a new snortbarn script for a little while now, Well now it's time for Debian users to enjoy an init script for snort and barnyard2.
+-- The snortbarn script has a variables section to change the init script to suit your Autosnort (or non Autosnort) snort installation
+-- Save the snortbarn script, copy it to /etc/init.d and make it executable.
+-- Remove the ifconfig snort and barnyard2 entries from rc.local
+-- Run the command insserv -f -v snortbarn to insert init scripts for snortbarn
+-- Enjoy.
+-- The Debian snortbarn script supports start, stop and restart functions.
+##################
+Previous Releases
+##################
+
+autosnort-debian-03-30-2013.sh
 
 Release notes:
 
@@ -17,19 +40,56 @@ Release notes:
 
 - Place these scripts in root's home directory (/root) along with the main autosnort script. /root is where the main script expects to find the child scripts. If the child scripts aren't there, the web front-end installation section of autosnort will fail to run until the child shell script is present in /root.
 
-- Finally, previous releases are available in the Previous_Rel directory, in the event that you find a bug with the current release and cannot wait for a fix to be made available.
+Aanval Post-Setup notes:
+
+- It is highly advised that you reboot your system before continuing to the aanval web console to configure Aanval to talk to snort. I ran into a problem prior to rebooting where the aanval console would not recognize that the php mysql module did exist and was loaded until the system was rebooted.
+
+- During the initial setup, aanval will want to know the name of the aanvaldb user and password.
+
+	Username:snort
+	Password:password you gave the snort database user during the autosnort installation
+
+- Aanval has a set of processes that are used to bring events over from the snort database that barnyard2 will dump to, and bring them over to the aanvaldb that aanval reads from. The console interface will let you know if they are not running. To start them:
+	1. Navigate to /var/www/aanval/apps
+	2. Run idsBackground.pl -start
+	
+- I plan on adding an rc.local entry that will do this for you in the near future!
+
+- In order for Aanval to manage events for your snort sensor you need to enable it on the aanval console. click the gear symbol in the lower corner of the web interface. This will bring you to a page called configuration. Click the "Settings" option under the "Snort Module" section. On the next page, check the enabled checkbox and enter the information for the snort database:
+
+	1. Database name: snort
+	2. Database hostname: localhost
+	3. Database username: snort
+	4. Database password: the password you assigned to the snort database user during autosnort installation
+	5. click update.
+	6. Click on the gear symbol in the lower corner again. Under the "Snort Module" section, this time select "Sensor Configuration"
+	7. Click the enabled checkbox
+	8. Fill out the other fields except the SMT ID as you see fit (you can leave fields blank if you want)
+	9. Click update
+	10. The page will re-load with a new checkbox for "User Permissions". Select this checkbox. The page will automatically reload
+	11. Click the house symbol at the top of the page to return to the Aanval home page.
+	
+- It may take a few minute for intrusion events to show up on the aanval interface. Be patient, they'll start coming in shortly!
+
+- For more guidance and information specific to aanval, pay the folks at Tactical FLEX a visit at aanval.com. Community support site and Aanval wiki are free to use and will provide you with everything I used to integrate Aanval into Autosnort.
+
+other notes:
+
+- Previous releases are available in the Previous_Rel directory, in the event that you find a bug with the current release and cannot wait for a fix to be made available.
 
 
-##################
-Previous Releases
-##################
+1/3/2013: 
 
-- 1/3/2013: pulled pork integration has been integrated into the debian autosnort script. 
+- pulled pork integration has been integrated into the debian autosnort script. 
 
 - The biggest change in functionality you will notice is the pulled pork integration using pulled pork for rule management has a few requirements:
 
 	1. You need to have a valid oink code. register on snort.org as a registered user, or if you have a VRT subscription, the VRT oink code you have should work fine
 	2. You'll need http and https access to labs.snort.org and snort.org to download snort.conf (from labs.snort.org) and rules via pulled pork (snort.org)
+	
+- Be aware that if there is a new release of snort, and you do not have a VRT subscription, you will be limited to snort rules for the previous version of snort for 30 days. That means that only the text-based rules will work. SO RULES DESIGNED FOR A PREVIOUS VERSION OF SNORT WILL NOT WORK ON A NEWER SNORT RELEASE.
+
+- If you choose to have autosnort download rules for the previous snort version via pulled pork, pulled pork is configured to process text rules ONLY to prevent Shared Object compatibility problems.
 
 other notes:
 
