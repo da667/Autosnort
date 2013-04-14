@@ -1,0 +1,79 @@
+#! /bin/sh
+#
+### BEGIN INIT INFO
+#Provides: snortbarn
+#Required-Start: $remote_fs $syslog mysql
+#Required-Stop: $remote_fs $syslog
+#Default-Start: 2 3 4 5
+#Default-Stop: 0 1 6
+#X-Interactive: true
+#Short-Description: Start Snort and Barnyard
+### END INIT INFO
+
+prog="snort"
+prog2="barnyard2"
+
+# Change these variables to suit your snort installation
+#The location of the snort binary
+SNORTD=/usr/local/snort/bin/snort
+#The location of the barnyard2 binary
+BY2D=/usr/local/bin/barnyard2
+#The sniffing interface for snort
+snort_iface=eth1
+#Command line execution options for snort
+OPTIONS="-D -u snort -g snort -c /usr/local/snort/etc/snort.conf -i $snort_iface"
+#Command line execution options for barnyard 2
+OPTIONS2="-c /usr/local/snort/etc/barnyard2.conf -d /var/log/snort -f snort.u2 -w /var/log/snort/barnyard2.waldo -D"
+
+. /lib/init/vars.sh
+. /lib/lsb/init-functions
+
+mysqld_get_param() {
+/usr/sbin/mysqld --print-defaults | tr " " "\n" | grep -- "--pid-file=" | cut -d"=" -f2
+}
+
+do_start()
+{
+    log_daemon_msg "Starting Snort and Barnyard" ""
+    # Make sure mysql has finished starting
+    ps_alive=0
+    while [ $ps_alive -lt 1 ];
+    do
+    pidfile=`mysqld_get_param pid-file`
+    if [ -f "$pidfile" ] && ps `cat $pidfile` >/dev/null 2>&1; then ps_alive=1; fi
+    sleep 1
+    done
+
+    /sbin/ifconfig $snort_iface up -arp -multicast promisc
+    $SNORTD $OPTIONS
+    $BY2D $OPTIONS2
+    log_end_msg 0
+    return 0
+}
+
+do_stop()
+{
+    log_daemon_msg "Stopping Snort and Barnyard" ""
+    kill $(pidof snort) 2> /dev/null
+    kill $(pidof barnyard2) 2> /dev/null
+    log_end_msg 0
+    return 0
+}
+
+case "$1" in
+ start)
+    do_start
+    ;;
+ stop)
+    do_stop
+    ;;
+ restart)
+    do_stop
+    do_start
+    ;;
+ *)
+    echo "Usage: snortbarn {start|stop|restart}" >&2
+    exit 3
+    ;;
+esac
+exit 0

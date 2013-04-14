@@ -2,7 +2,30 @@
 autosnort-Ubuntu Release Notes
 ##############################
 
-Current Release: autosnort-ubuntu-03-17-2013.sh
+Current Release: autosnort-ubuntu-04-14-2013.sh
+
+Release Notes:
+
+- No major functionality changes
+
+Bug Fixes:
+
+- Resolved a problem with Autosnort regarding a recent change in Barnyard2. Barnyard 2.13 BETA2 introduced a change where it doesn't like it if you give it directives via the command line and via its configuration file anymore. It is specifically throwing an error because we tell barnyard 2 where to find the sid and gen-msg.map via the -S and -G options, as well as via the barnyard2.conf file. I've since removed the -S and -G options that autosnort used for barnyard2 to fix this issue.
+
+Other Notes:
+- CentOS users have been enjoying a new snortbarn script for a little while now, Well now it's time for Ubuntu users to enjoy an init script for snort and barnyard2.
+-- The snortbarn script has a variables section to change the init script to suit your Autosnort (or non Autosnort) snort installation
+-- Save the snortbarn script, copy it to /etc/init.d and make it executable.
+-- Remove the ifconfig snort and barnyard2 entries from rc.local
+-- Run the command update-rc.d snortart to insert init script links for snortbarn
+-- Enjoy.
+-- The Ubuntu snortbarn script supports start, stop and restart functions.
+
+##################
+Previous Releases
+##################
+
+autosnort-ubuntu-03-17-2013.sh
 
 Release notes:
 
@@ -53,10 +76,6 @@ Aanval Post-Setup notes:
 other notes:
 
 - Previous releases are available in the Previous_Rel directory, in the event that you find a bug with the current release and cannot wait for a fix to be made available.
-
-##################
-Previous Releases
-##################
 
 01/02/13:
 

@@ -1,8 +1,23 @@
 ###############################
 autosnort-centOS Release Notes
 ###############################
+Current Release: autosnort-centOS-04-14-2013.sh
 
-Current Release: autosnort-centOS-03-30-2013.sh
+Release Notes:
+
+- No new major functionality changes
+
+Bug Fixes:
+
+- Fixed a bug observed with Barnyard 2. Apparently specifying an argument on the command line as well as via its .conf file causes Barnyard2 to crash with a FATAL ERROR stating you can't do this anymore. Not sure when this change was implemented, but I've modified this version of autosnort as well as the CentOS snortbarn script to reflect this change. As a direct result of this the sid-msg.map and gen-msg.map files are specified via the barnyard2.conf file and not via the command line -S and -G options any longer.
+
+- Fixed a bug in the line that runs ifconfig via rc.local to prime the snort sniffing interface at boot; the entire line was being echoed to the screen instead of the ifconfig command being echoed and appended to rc.local like it should have been.
+
+##################
+Previous Releases
+##################
+
+autosnort-centOS-03-30-2013.sh
 
 Release notes:
 
@@ -99,12 +114,6 @@ other notes:
 - Recieved a couple of notifications that users cannot connect to the web server running on their sensor post-reboot after the installation is done. This is because CentOS ships with a firewall that essentially blocks everything but 22/tcp (ssh) inbound by default. To remedy this, run the command "system-configure-firewall-tui" and enable access for "WWW" (80/tcp), and everything should work fine.
 
 - Previous releases are available in the Previous_Rel directory, in the event that you find a bug with the current release and cannot wait for a fix to be made available.
-
-
-
-##################
-Previous Releases
-##################
 
 Hello autosnort users. This is a README the CentOS autosnort build with Pulled Pork integration.
 

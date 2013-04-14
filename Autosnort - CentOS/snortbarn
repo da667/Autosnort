@@ -45,7 +45,7 @@ snort_iface=eth1
 #Command line execution options for snort
 OPTIONS="-D -u snort -g snort -c /usr/local/snort/etc/snort.conf -i $snort_iface"
 #Command line execution options for barnyard 2
-OPTIONS2="-c /usr/local/snort/etc/barnyard2.conf -G /usr/local/snort/etc/gen-msg.map -S /usr/local/snort/etc/sid-msg.map -d /var/log/snort -f snort.u2 -w /var/log/snort/barnyard2.waldo -D"
+OPTIONS2="-c /usr/local/snort/etc/barnyard2.conf -d /var/log/snort -f snort.u2 -w /var/log/snort/barnyard2.waldo -D"
 
 
 
