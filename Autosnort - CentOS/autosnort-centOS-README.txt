@@ -1,7 +1,40 @@
 ###############################
 autosnort-centOS Release Notes
 ###############################
-Current Release: autosnort-centOS-04-14-2013.sh
+Current Release: autosnort-centOS-04-21-2013.sh
+
+Release Notes:
+
+- Added support for output interface BASE and syslog_full format
+
+-- The installation of BASE is very straightforward
+-- Upon system reboot navigate to http://[ip address]/base to begin the setup
+-- page 1 verifies that requisite packages are in place
+-- when asked where adodb is located, enter "/usr/share/php/adodb"
+-- when asked for credentials for the database and its location:
+database name: snort
+database host: localhost
+database port: (leave blank or enter 3306)
+database username: snort
+database passwrd: [snort database user's password]
+-- on the authentication page, if you want users to enter a password to review events, do so. Otherwise, click continue.
+-- on the next page, click the "BASE AG" button for BASE to modify the database.
+
+- Regarding syslog_full format
+-- this is NOT fully tested. It has only been tested against Splunk. As time goes on, I may test with other SIEMS (e.g. graylog2 or just raw syslog) as required or requested (submit a feature request via github!)
+-- Ensure 514/udp outbound is open on the sensor's management interface
+-- Ensure 514/udp inbound is open on the SIEM
+-- you can use tcpdump (tcpdump -i eth0 port 514) to verify that events are being sent out, as well as on the SIEM to see if events are making it to the SIEM
+- if syslog_full format is chosen, output to mysql is disabled.
+
+- The script has been modified to generate a new barnyard2.conf on the fly as opposed to using sed to modify the .conf file provided with the source. The barnyard2.conf file provided with barnyard2's source code is copied to /usr/local/snort/etc as barnyard2.conf.orig in the event it is needed in the future (e.g. modify output settings, etc.)
+- Of course, the output interface menu has been modified to include BASE and syslog_full
+
+##################
+Previous Releases
+##################
+
+autosnort-centOS-04-14-2013.sh
 
 Release Notes:
 
@@ -12,10 +45,6 @@ Bug Fixes:
 - Fixed a bug observed with Barnyard 2. Apparently specifying an argument on the command line as well as via its .conf file causes Barnyard2 to crash with a FATAL ERROR stating you can't do this anymore. Not sure when this change was implemented, but I've modified this version of autosnort as well as the CentOS snortbarn script to reflect this change. As a direct result of this the sid-msg.map and gen-msg.map files are specified via the barnyard2.conf file and not via the command line -S and -G options any longer.
 
 - Fixed a bug in the line that runs ifconfig via rc.local to prime the snort sniffing interface at boot; the entire line was being echoed to the screen instead of the ifconfig command being echoed and appended to rc.local like it should have been.
-
-##################
-Previous Releases
-##################
 
 autosnort-centOS-03-30-2013.sh
 
