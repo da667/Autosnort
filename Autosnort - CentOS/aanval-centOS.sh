@@ -20,7 +20,7 @@ cd /var/www/html/aanval
 # A check needs to be built into the main script to verify this script exits cleanly. If it doesn't,
 # The user should be informed and brought back to the main interface selection menu.
 echo "grabbing aanval."
-wget https://www.aanval.com/download/pickup -O aanval.tar.gz
+wget https://www.aanval.com/download/pickup -O aanval.tar.gz --no-check-certificate
 if [ $? != 0 ];then
 	echo "Attempt to pull down aanval console failed. Please verify network connectivity and try again."
 	exit 1
