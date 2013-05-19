@@ -30,6 +30,7 @@ cd /var/www/snorby && rails runner 'Snorby::Jobs::SensorCacheJob.new(false).perf
 Bug fixes:
 - for the aanval child shell script added --no-check-certificate as a work-around to automatically grab the install package from aanval.com (https)
 - for the pulled pork rule installation phase, added support to download snortrules packages for older versions of snort in the event that the rules for the version before the current version have not been made free to registered rule users yet.
+- fixed a bug in the remote database configuration portion of the script that turned into a mess of an infinite loop.
 
 
 
