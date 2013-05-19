@@ -9,7 +9,7 @@
 
 echo "grabbing packages for aanval"
 #grab packages for aanval most of the primary required packages are pulled by  the main AS script.
-apt-get install -y zlib1g-dev libmysqld-dev byacc libxml2-dev zlib1g
+apt-get install -y zlib1g-dev libmysqld-dev byacc libxml2-dev zlib1g php5 php5-mysql php5-gd nmap
 
 echo "making the aanval web UI directory"
 #Make the aanval directory under /var/www, and cd into it
