@@ -2,7 +2,42 @@
 autosnort-Ubuntu Release Notes
 ##############################
 
-Current Release: autosnort-ubuntu-04-21-2013.sh
+Current Release: autosnort-ubuntu-05-18-2013.sh
+
+Release Notes:
+
+- added in support for snorby (finally) after several long, grueling hours of testing.
+-- navigate to the snorby web interface is simple, point your your browser to http://[sensor ip address] and you're done.
+-- the default credentials are snorby@snorby.org and the password is snorby
+-- Note that after reboot, the console may complain that the worker process isn't working. You'll need to ssh or console on as root and run this command to start the delayed_job task:
+cd /var/www/snorby && ruby script/delayed_job start
+additionally, you may want to force snorby to run the sensor cache jobs now as opposed to when it is scheduled to do so later:
+cd /var/www/snorby && rails runner 'Snorby::Jobs::SensorCacheJob.new(false).perform; Snorby::Jobs::DailyCacheJob.new(false).perform'
+
+-- I tried to automate this (have the commands added to rc.local, but that did not work as intended... so unfortunately, every time the system is rebooted, you'll likely want to ssh or console in to run these tasks, or try started the snorby worker via the web interface.
+
+--as another side note, if you notice that intrusion events are filling the 'event' tab, but the dashboard has yet to update, try running the "force cache update" option on the dashboard's other tasks menu. Wait ten seconds, then refresh/reload the page. 
+
+- Cleaned up the number of packages installed by default
+-- now, by default, autosnort only installs the necessary packages required to compile daq, libdnet, snort, and barnyard2 (with support to log to a remote database)
+-- as such as new dialogue, asking if the user wishes to install a web interface onto the system has been added. If you are unsure what to do at this point, just select option '1', this will install apache and mysql servers for a full stand-alone sensor
+-- otherwise, if you elect to not install a web interface, an EXPERIMENTAL (as in, NOT FULLY TESTED) option has been added that results in another dialogue further in the installation that allows the user to specify a remote system to log intrusion events to, *possibly* allowing for distrubuted sensor installs. If you say no to this, the script continues and warns you that the only other output options available to you are syslog (barebone sensor install) or no interface at all
+- Child shell scripts now install the packages needed for their installations independant of the main shell script
+-- again, this was for cleanup purposes and to reduce the attack surface.
+- Several minor code and comment enhancements/cleanups
+--thanks to DK1844 for some suggestions for enhancing autosnort!
+
+Bug fixes:
+- for the aanval child shell script added --no-check-certificate as a work-around to automatically grab the install package from aanval.com (https)
+- for the pulled pork rule installation phase, added support to download snortrules packages for older versions of snort in the event that the rules for the version before the current version have not been made free to registered rule users yet.
+
+
+
+##################
+Previous Releases
+##################
+
+autosnort-ubuntu-04-21-2013.sh
 
 Release Notes:
 
@@ -31,9 +66,6 @@ database passwrd: [snort database user's password]
 - The script has been modified to generate a new barnyard2.conf on the fly as opposed to using sed to modify the .conf file provided with the source. The barnyard2.conf file provided with barnyard2's source code is copied to /usr/local/snort/etc as barnyard2.conf.orig in the event it is needed in the future (e.g. modify output settings, etc.)
 - Of course, the output interface menu has been modified to include BASE and syslog_full
 
-##################
-Previous Releases
-##################
 
 autosnort-ubuntu-04-14-2013.sh
 
