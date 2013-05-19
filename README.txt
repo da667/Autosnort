@@ -1,122 +1,63 @@
-Autosnort v1
+Autosnort
 
 Triptych Security - Tony Robinson/da_667
 twitter: @da_667
-email: deusexmachina667@gmail.com
+email: deusexmachina667 [at] gmail [dot] com
 
 
-Q & A
+Autosnort is a shell script that leaves the user with a fully functional snort installation. More specifically, autosnort will:
 
-Q:First and foremost, WHAT is Autosnort?
-
-A: Autosnort is a shell script that will perform all of the dirty work of a snort install for you on Supported operating systems(32-bit or 64-bit). The script as it stands right now leaves you with:
-
-1. A fresh install of Snort with --enable-sourcefire for performance profiling.
-2. A fresh install of Barnyard 2
-3. A fresh install of web interface of your choose (current choices include snortreport and aanval, with more to come)
-
-Q:What does the script do to my system?
-
-A: Quite a number of things:
-
-1. Performs a system update before beginning the installation
-2. Downloads all the required packages (and dependencies) via your operating system's package manager for a fully functional IDS and Web Interface installation
-3. Compiles libdnet, daq, snort, and barnyard2 (and other tools as required) from source
-4. Automatically downloads the latest rules for snort via pulled pork
-5. Fully configures snort, httpd, mysql, barnyard2 and the web interface you choose to sniff network traffic and report events to your web interface
-
-Q:What software is downloaded and installed by Autosnort?
-
-A: It varies depending on the OS distribution you are using, and the functionality you choose to install.
-
-Here are SOME of the packages that are downloaded by autosnort (not including dependencies) by their general names:
-
-Any and all System updates for your distro of choice
-nmap 
-nbtscan 
-apache/httpd
-php5 
-php5-mysql 
-php5-gd 
-libpcap
-libpcre 
-g++ 
-bison 
-flex 
-libpcap-ruby 
-make 
-autoconf 
-libtool
-mysql-server
-libmysqlclient-dev
-libdnet
-Daq Libraries
-Snort
-Barnyard2
+1. Install the latest version of snort, daq, libdnet, barnyard2 and the packages required to configure, compile and install them all, in addition to operating system updates
+2. Allow the user to provide the script a VRT rule tarball for manual rule configuration, or have pulledpork (automatically installed and configured to provide you with a security over connectivity ruleset) do all the heavy lifting for you
+3. Install an IDS alert interface of the user's choice, download the necessary packages for it, and configure it all in one fell swoop. Interface choices include:
+--snortreport
+--snorby
+--aanval
+--base
+--syslog_full messages to port 514/udp (think: barebones sensor install or SIEM integration)
+--(EXPERIMENTAL) configure barnyard2 to log to a remote database (think: distributed installation)
+--install no interface at all
 
 
-If you want more granular details, the shell script is meticulously commented and is relatively easy to understand if you have any experience with shell scripting.
+Here are the requirements:
 
-Q:What are system requirements for the script?
+1. An internet connection -- autosnort downloads all of its packages over the internet (exception: autosnort offline!), so port 80 and port 443 access are required to download required packages
+2. root/sudo access -- several system-wide changes are made with autosnort. as such, root privelges are required.
+3. A minimum of two network interfaces is recommended. autosnort dedicates one interface solely to sniffing traffic. This interface will NOT respond to any service requests at all. As such, a second physical interface is needed to remotely administer the sensor.
+(optional)4.SSH access to the system for remote system administration is very highly recommended
 
-A:I've listed what access the script needs, what file(s) need to be present for the script to complete successfully as well as required user input below:
+The shell script is meticulously commented in order to fully explain what it is the script does exactly and document all packages and changes made to the system.
+
+To run autosnort you will need to do the following:
+
+1) copy the autosnort-[os]-[date].sh to the /root directory of your operating system [e.g. autosnort-ubuntu-05-18-2013.sh]
+2) copy the [webinterface]-[os].sh script to the /root directory [e.g. snorby-ubuntu.sh]
+3) run the autosnort-[os]-[date].sh script as the root user [e.g. as root, type "bash /root/autosnort-[os]-[date].sh" or "cd /root && chmod u+x autosnort-[os]-[date].sh && ./autosnort-[os]-[date].sh" or run either of the following via sudo...]
+4) The script gives you the option of rebooting your system after the installation is complete. In some cases it's necessary for some web interface components to register or work correctly. reboot your system. Upon reboot snort, barnyard, and the interface of your choice should be running flawlessly.
+
+snort is installed under: /usr/local/snort
+barnyard2 is installed under: /usr/local/bin
+web interfaces are installed under: /var/www (ubuntu, debian) or /var/www/html (centOS)
+
+I chose to write autosnort as an alternative to other IDS solutions such as security onion, insta-snorby, etc. as a way for me to enhance my bash-fu, while granting snort users of any proficiency the capability to install the latest and greatest version of snort and its components as soon as they become available with as little muss and fuss as possible, with only the interfaces or features they desired, on an operating system they want to use.
+
+All this being said.. Autosnort is not a replacement for Security Onion. I'm not hating on Doug Berks, Security Onion or any other open-source IDS distro or solution; the more the merrier. the open-source community is all about choice, consider my shell scripts just another choice...
+
+If you feel that this script is not as robust as it can be, lacks features that would be desireable to IDS/IPS users, or does not implement functionality in an intuitive manner, I welcome all criticisms, bugs, feature requests, code contributions, and/or anything else you can throw at me. Include cash. Cold hard cash.	
+
+Currently, autosnort supports Ubuntu, Debian, CentOS and Backtrack5(r3 -- being phased out; with support for Kali coming soon) 32 and 64-bit. I can include support for more operating systems, If I am give feature requests/enhancements to do so... the direction of this project is completely up to the users who utilize it.
 
 
-System/Access requirements:
-1. you will need root access on the system you plan to install snort on, either that or "sudo" access to run this script as root. We do a lot of system administrative tasks to make this script work, so we need system priveleges. There's no way around this, unfortunately.
-2. Internet access - we'll be downloading a lot of things from the wild wild web, so an internet connection is absolutely required. I would advise that you ensure that http, https and ftp access to the internet are allowed from the system you are attempting to configure with autosnort to ensure all required items can be downloaded successfully.
-
-3. For all operating systems (with the exception of backtrack linux), two dedicated network interfaces are required if you plan on having your server act as a dedicated IDS -- one interface to carry ssh and http/s traffic to/from the sensor (aka your "management" interface) and a sniffing interface. the sniffing interface will NOT have an ip address, and will NOT respond to ARP or multicast traffic, effectively preventing anything on the network from talking to the sniffing interface. This is done for opsec reasons. An IDS should always have dedicated sniffing and dedicated management interfaces.
+Other features that I am working on that have not yet been fully implemented include:
 
 
-Q: Where does the script install snort, the snort.conf, rule files, etc. ?
+1. OFFICIAL, non-experimental support for distributed installs (e.g. modify the script to install snort and barnyard2, then point barnyard2 to a management system running  the front-end of your choice and the mysql server.)
 
-A: The script installs snort to /usr/local/snort/. the actual snort binary is in /usr/local/snort/bin/snort. the snort.conf is in /usr/local/snort/etc/snort.conf. rules are located in /usr/local/snort/lib/snort_dynamicrules for SO rules, /usr/local/snort/rules for whitelist.rules, blacklist.rules and all GID 1 rules, and finally, /usr/local/snort/preproc_rules for preprocessor rules, if you desire to use them. unified 2 files and the waldo file for barnyard are located in /var/log/snort.
+2. Support for inline installations
 
-Q: I don't feel like typing out "/usr/local/snort/bin/snort" every time I want to run snort manually. This is going to get really annoying really fast.
+3. Reconfiguration of apache to allow viewing of web interface over SSL only
 
-A: By default, most Linux distros use the BASH shell. Every bashes will read certain files from your home directory called rc or profile files. For BASH, these files are usually .bashrc, .bash_profile, among others. In the rc file, you can modify your system's PATH variable and include /usr/local/snort/bin in the PATH. if you want to do this quickly without logging out and/or logging in again, try this:
-echo "export PATH=$PATH:/usr/local/snort/bin" >> ~/.bashrc && source ~/.bashrc -- this adds the line to .bashrc in root's home and tells your shell to reload it on the fly.
-
-alternatively, you can symlink the /usr/local/snort/bin/snort directory to a directory that is already on the PATH variable (/bin, /usr/sbin, etc.)
-
-Q:*How* do I run this script
-
-A: See below for details on how to get autosnort to run:
-
-1. This script must be ran in the BASH shell specifically. There are two ways I recommend doing this:
-	a. run chmod u+x autosnort-ubuntu-12.04.sh to make the script executable, then just type "./autosnort-ubuntu-12.04.sh" to run the script
-	b. run the command "bash autosnort-ubuntu-12.04.sh" to call a BASH shell and make it run the script
-	
-Q: Why did you do it? Security Onion already exists and the documents are already out there.
-
-A: First and foremost: THIS SCRIPT IS *NOT* A REPLACEMENT FOR SECURITY ONION! I did this as a way for snort users to be able to perform an installation from scratch and understand what is done to their system when snort is installed. The script can be modified by snort experts to build snort with other configure options, install different web frontends, integration with CM tools (i.e. Spacewalk/Puppet/Chef) and a host of other purposes.
-
-Most importantly I chose to do this to bring snort to more people. A lot of critics of the snort project complain it is cumbersome to install, and not user friendly at all. This script is my attempt to prove to new users that setting up a new snort instance can be quick and painless.
-
-Q: Why snortreport? Why not snorby or squil or [...]
-
-A: I chose snortreport for ease of install and readily available instructions via snort.org. As time moves on, I plan on adding options for the user to select a web front-end from a series of choices, or to just log alerts to syslog for collection to a SIEM.
-
-Q: Dude, this script sucks. I could do this in half a day, in [insert scripting/programming language] blindfolded and with [x] functionality integrated.
-
-A: So my script sucks. Tell me what sucks about it, and how you would improve it instead of straw man arguments against me.. I'm not much of a programmer obviously, so help me out --  not to benefit me but to benefit the Open-Source and snort community in general.
-
-Q: What distros do you support? What distros do you plan on supporting?
-
-A: Currently I support all of the operating systems listed in the github repo. So, to date that is: Ubuntu 12.04+, CentOS 6.3+, Debian 6+ and Backtrack 5 r3. For all supported operating systems this includes 32-bit and 64-bit support. If you choose to run the script on an earlier version of a supported operating system, I *may* be able to assist you, but this is NOT any kind of a garantee. If you ran the script on an earlier version of a supported operating system and it works, please let me know! If you ran into problems, at least let me know what problems you came across!
-
-Q: So you mentioned a bit of a to-do list. You're releasing a half-baked script?
-
-A: No, put down the pitchforks. I want to add some enhancements and additional functionality to this script in addition to porting it to a few other distros. Some things I would like to do:
-
-1. Add support for distributed installs (e.g. modify the script to install snort and barnyard2, then point barnyard2 to a management system running  the front-end of your choice and the mysql server.)
-
-2. Add support for barebones installs (e.g. no mysql, no barnyard, no web front-end, syslog only, configure rsyslogd, syslogd, etc. to log to a log management solution).   Think: splunk, graylog 2 or another SIEM-- something where 'you don't want/need packets, you just want alerts.
-
-3. Add support for installing other/different web frontends (think: a choice of installing snorby and/or BASE instead of just snort report)
-
-4. Add support for inline installs either through guided installation and configuration of bridge-utils, or through proper use of the snort daq, maybe even pf_ring if I can figure out how the hell pf_ring works.
+4. distributed sensor installations communicate over SSL only.
 
 
 I think this is enough of a list combined with getting the script to run on other distros to keep me busy for a long time. If there's functionality you would see added, by all means, offer your suggestions, my contact information is up top.
