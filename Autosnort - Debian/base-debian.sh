@@ -5,7 +5,7 @@
 
 echo "grabbing packages for BASE"
 #grab packages for BASE. Most of the primary required packages are pulled by  the main AS script.
-apt-get install -y libphp-adodb ca-certificates php-pear libwww-perl
+apt-get install -y libphp-adodb ca-certificates php-pear libwww-perl php5 php5-mysql php5-gd
 
 #These are php-pear config commands Seen in the 2.9.4.0 install guide for Debian.
 pear config-set preferred_state alpha

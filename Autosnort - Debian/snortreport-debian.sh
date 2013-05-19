@@ -2,6 +2,8 @@
 #Aanval shell script 'module'
 #Sets up snort report for Autosnort
 
+apt-get install -y php5 php5-mysql php5-gd nmap nbtscan
+
 #Grab jpgraph and throw it in /var/www
 #Required to display graphs in snort report UI
 

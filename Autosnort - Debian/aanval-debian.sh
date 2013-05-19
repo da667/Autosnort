@@ -9,7 +9,7 @@
 
 echo "grabbing packages for aanval"
 #grab packages for aanval most of the primary required packages are pulled by  the main AS script.
-apt-get install -y libxml2-dev libssl-dev libcrypt-ssleay-perl libphp-adodb ca-certificates php-pear
+apt-get install -y zlib1g-dev libmysqld-dev byacc libxml2-dev zlib1g php5 php5-mysql php5-gd nmap libssl-dev libcrypt-ssleay-perl libphp-adodb php-pear
 
 echo "making the aanval web UI directory"
 #Make the aanval directory under /var/www, and cd into it
@@ -60,5 +60,7 @@ while true; do
 		break
 	fi
 done
+
+chown -R www-data:www-data /var/www/aanval
 
 exit 0
