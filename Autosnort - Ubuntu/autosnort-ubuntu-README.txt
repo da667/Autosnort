@@ -2,7 +2,24 @@
 autosnort-Ubuntu Release Notes
 ##############################
 
-Current Release: autosnort-ubuntu-05-18-2013.sh
+Current Release: autosnort-ubuntu-06-15-2013
+
+- This version is almost a complete re-write of the script. Quite a few nicer/newer features added to this build:
+-- Output from the script has been minimized where possible. Instead of writing all command output to the screen and "puking" all over the screen buffer, users are now presented with nice, metasploit like prompts, giving a basic run-down of what the script is doing (blue output), things the user needs to pay attention to (yellow output), and whether or not a given task in the script was successful (green is good, red is bad). Instead of outputting everything to the screen...
+-- ...Autosnort and all of the child shell scripts now automatically log the entire installation. Log files are written to /var/log. The primary script logs to autosnort_install.log, the child scripts also log to /var/log and are named after their namesake web interface. (e.g. snorby would be named snorby_install.log). This is in an effort to make troubleshooting easier for users -- you can review the installation logs to see what went wrong, or if you contact me, you can send me a copy and I can try to troll through them to figure out what exploded
+-- Related to the logging/output printing improvements, the print statements actually tell you where the different components are installed
+-- Support for Debian 13.04 officially added, backwards compatibility with Ubuntu 12.04 maintained
+-- Did some magic with the apache default-site config file to make it to where, no matter what web interface you install, you can point your web browser to your sensor's IP address and be greeted by your web interface (Gritty details: for each web interface install, the apache default-site DocumentRoot gets set to where the web interface is the DocumentRoot -- for example, if you install aanval, you can browse to http://[address] and be immediately greeted by aanval.)
+-- Added an option to create an entry for Aanval's BPU subsystem in rc.local to start them up on boot
+
+Bug fixes:
+- Fixed an annoying problem -- different versions of ubuntu store libmysqlclient.so, a necessary file for barnyard2, in a different place (Just like Debian.. Consistently inconsistent..). Made it to where the script does "find /usr/lib -name libmysqlclient.so" to tell the barnyard2 ./configure script where the libmysqlclient.so libriaries are located, instead of a bunch of if/thens.
+
+##################
+Previous Releases
+##################
+
+autosnort-ubuntu-05-18-2013.sh
 
 Release Notes:
 
@@ -31,12 +48,6 @@ Bug fixes:
 - for the aanval child shell script added --no-check-certificate as a work-around to automatically grab the install package from aanval.com (https)
 - for the pulled pork rule installation phase, added support to download snortrules packages for older versions of snort in the event that the rules for the version before the current version have not been made free to registered rule users yet.
 - fixed a bug in the remote database configuration portion of the script that turned into a mess of an infinite loop.
-
-
-
-##################
-Previous Releases
-##################
 
 autosnort-ubuntu-04-21-2013.sh
 
