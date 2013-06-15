@@ -93,10 +93,10 @@ fi
 
 tar -xzvf snortreport-1.3.3.tar.gz &>> $sreport_logfile
 if [ $? != 0 ];then
-	print_error "Attempt to install Snort Report failed. See $sreport_logfile for details."
+	print_error "Attempt to install Snortreport failed. See $sreport_logfile for details."
 	exit 1
 else
-	print_good "Successfully installed Snort Report."
+	print_good "Successfully installed Snortreport."
 fi
 
 rm -rf snortreport-1.3.3.tar.gz

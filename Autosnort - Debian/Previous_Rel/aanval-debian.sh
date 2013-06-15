@@ -10,7 +10,7 @@
 ########################################
 #logging setup: Stack Exchange made this.
 
-aanval_logfile=/var/log/aanval_install.log
+snorby_logfile=/var/log/aanval_install.log
 mkfifo ${aanval_logfile}.pipe
 tee < ${aanval_logfile}.pipe $aanval_logfile &
 exec &> ${aanval_logfile}.pipe
@@ -41,13 +41,11 @@ function print_notification ()
 
 ########################################
 
-print_status "Grabbing packages for aanval."
-#grab packages for aanval most of the primary required packages are pulled by  the main AS script. Also suppressing the message for libphpadodb
-echo libphp-adodb  libphp-adodb/pathmove note | debconf-set-selections
+print_status "grabbing packages for aanval"
+#grab packages for aanval most of the primary required packages are pulled by  the main AS script.
 apt-get install -y zlib1g-dev libmysqld-dev byacc libxml2-dev zlib1g php5 php5-mysql php5-gd nmap libssl-dev libcrypt-ssleay-perl libphp-adodb php-pear &>> $aanval_logfile
-
 if [ $? != 0 ];then
-	print_error "Failed to acquire required packages for Aanval. See $aanval_logfile for details."
+	print_bad "Failed to acquire required packages for Aanval. See $aanval_logfile for details."
 	exit 1
 else
 	print_good "Successfully acquired packages."
@@ -69,7 +67,7 @@ cd /var/www/aanval
 print_status "Grabbing aanval."
 wget https://www.aanval.com/download/pickup -O aanval.tar.gz --no-check-certificate &>> $aanval_logfile
 if [ $? != 0 ];then
-	print_error "Attempt to pull down aanval console failed. See $aanval_logfile for details."
+	print_bad "Attempt to pull down aanval console failed. See $aanval_logfile for details."
 	exit 1
 else
 	print_good "Successfully downloaded Aanval."
@@ -77,9 +75,9 @@ fi
 
 print_status "Installing Aanval."
 
-tar -xzvf aanval.tar.gz &>> $aanval_logfile
+tar -xzvf aanval.tar.gz
 if [ $? != 0 ];then
-	print_error "Attempt to unpack Aanval failed. See $aanval_logfile for details."
+	print_bad "Attempt to unpack Aanval failed. See $aanval_logfile for details."
 	exit 1
 else
 	print_good "Successfully installed aanval to /var/www/aanval."
@@ -121,28 +119,22 @@ while true; do
 	fi
 done
 
-########################################
-
 print_status "Granting ownership of /var/www/aanval to www-data."
 
 chown -R www-data:www-data /var/www/aanval
-
-print_status "Resetting DocumentRoot to /var/www/aanval"
-sed -i 's/DocumentRoot \/var\/www/DocumentRoot \/var\/www\/aanval/' /etc/apache2/sites-available/default
 
 print_status "Starting background processors for Aanval web interface."
 cd /var/www/aanval/apps
 perl idsBackground.pl -start &>> $aanval_logfile
 if [ $? != 0 ];then
-	print_error "failed to start background processors. See $aanval_logfile for details."
+	print_bad "failed to start background processors. See $aanval_logfile for details."
 	exit 1
 else
 	print_good "Successfully started background processors."
 fi
 
-########################################
-
 print_notification "The background processors need to run in order to export events fro the snort database to aanval's database."
+print_notification "Would you like to add commands to start the background processors on boot to rc.local?"
 while true; do
 	print_notification "Would you like to add commands to start the background processors on boot to rc.local?"
 	read -p "
@@ -169,6 +161,6 @@ while true; do
 	esac
 done
 
-print_notification "The log file for this interface installation is located at: $aanval_logfile"
+print_good "Aanval installation successful."
 
 exit 0
