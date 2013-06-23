@@ -1,0 +1,150 @@
+notes:
+There's like a boatload of crap that needs to be enabled to get Snorby to work at all.
+The first volley of commands is to allow apache access to read/write what's in the snorby directory, and the sebools are to allow snorby to talk to mysql and manage some network connections.
+chcon -R -t httpd_sys_rw_content_t /var/www/html/snorby/
+setsebool -P httpd_can_network_connect_db 1
+setsebool -P httpd_can_network_connect 1
+I've found that the following files/dirs need to be set to the context of httpd_sys_script_exec_t in order to get fuckall to work:
+/usr/local/rvm/rubies/ruby-1.9.3-p429/bin/ruby
+/usr/local/rvm/wrappers/ruby-1.9.3-p429/ruby
+/usr/local/rvm/rubies/ruby-1.9.3-p429/lib/libruby.so*
+/usr/local/rvm/gems/ruby-1.9.3-p429/gems/ (need to make this one recursive.)
+/var/www/html/snorby/vendor/bundle/ruby/1.9.1/gems/ (need this one to be recursive too)
+
+This is just the beginning. This code block below, anonymously posted as a gist on github (and expanded upon by me) needs to be ran. how?
+yum -y install /usr/bin/audit2allow (this installs selinux development tools needed to make this work
+mkdir /usr/src/selinux-devel
+cd /usr/src/selinux-devel
+ln -s /usr/share/selinux/devel/Makefile .
+
+Next copy this into a file named "passenger.te":
+
+#####BEGIN CODE BLOCK - PASTE EVERYTHING BELOW THIS #####
+#For my own notes: checkmodule -M -m -o passenger.mod passenger.te
+#semodule_package -o passenger.pp -m passenger.mod
+#semodule -i passenger.pp
+module passenger 1.0;
+
+require {
+        type init_t;
+        type initrc_t;
+        type system_cronjob_t;
+        type mysqld_t;
+        type usr_t;
+        type syslogd_t;
+        type system_dbusd_t;
+        type abrt_dump_oops_t;
+        type dhcpc_t;
+        type kernel_t;
+        type auditd_t;
+        type udev_t;
+        type mysqld_safe_t;
+        type postfix_pickup_t;
+        type sshd_t;
+        type crond_t;
+        type getty_t;
+		type anon_inodefs_t;
+        type httpd_tmp_t;
+        type devpts_t;
+		type user_devpts_t;
+        type httpd_sys_script_t;
+        type security_t;
+        type httpd_t;
+        type unconfined_t;
+        type selinux_config_t;
+        type hi_reserved_port_t;
+        type httpd_sys_content_t;
+		type httpd_sys_rw_content_t;
+        type var_t;
+        type cert_t;
+		type postfix_qmgr_t;
+        type postfix_master_t;
+        class file { getattr read create append write execute execute_no_trans open };
+        class process { siginh signal noatsecure rlimitinh setpgid getsession };
+        class unix_stream_socket { read write shutdown };
+        class chr_file { read write append ioctl };
+        class capability { setuid dac_override chown fsetid setgid fowner sys_nice sys_resource sys_ptrace kill };
+        class fifo_file { setattr create getattr unlink };
+        class sock_file { write getattr setattr create unlink };
+        class lnk_file { read getattr };
+        class udp_socket name_bind;
+        class dir { write read search add_name getattr };
+}
+#============= httpd_sys_script_t ==============
+allow httpd_sys_script_t abrt_dump_oops_t:dir { search getattr };
+allow httpd_sys_script_t abrt_dump_oops_t:file { read open };
+allow httpd_sys_script_t anon_inodefs_t:file { read write };
+allow httpd_sys_script_t auditd_t:dir { search getattr };
+allow httpd_sys_script_t auditd_t:file { read open };
+allow httpd_sys_script_t cert_t:dir { search getattr };
+allow httpd_sys_script_t cert_t:file { read getattr };
+allow httpd_sys_script_t cert_t:lnk_file read;
+allow httpd_sys_script_t crond_t:dir { search getattr };
+allow httpd_sys_script_t crond_t:file { read open };
+allow httpd_sys_script_t devpts_t:chr_file { read write };
+allow httpd_sys_script_t dhcpc_t:dir { search getattr };
+allow httpd_sys_script_t dhcpc_t:file { read open };
+allow httpd_sys_script_t getty_t:dir { search getattr };
+allow httpd_sys_script_t getty_t:file { read open };
+allow httpd_sys_script_t httpd_sys_content_t:fifo_file setattr;
+allow httpd_sys_script_t httpd_sys_content_t:sock_file { create unlink setattr };
+allow httpd_sys_script_t httpd_sys_rw_content_t:file { execute execute_no_trans };
+allow httpd_sys_script_t httpd_t:dir { search getattr };
+allow httpd_sys_script_t httpd_t:file { read open };
+allow httpd_sys_script_t httpd_t:unix_stream_socket { read write };
+allow httpd_sys_script_t httpd_tmp_t:fifo_file setattr;
+allow httpd_sys_script_t httpd_tmp_t:sock_file { write create unlink setattr };
+allow httpd_sys_script_t init_t:dir { search getattr };
+allow httpd_sys_script_t init_t:file { read open };
+allow httpd_sys_script_t initrc_t:dir { search getattr };
+allow httpd_sys_script_t initrc_t:file { read open };
+allow httpd_sys_script_t kernel_t:dir { search getattr };
+allow httpd_sys_script_t kernel_t:file { read open };
+allow httpd_sys_script_t mysqld_safe_t:dir { search getattr };
+allow httpd_sys_script_t mysqld_safe_t:file { read open };
+allow httpd_sys_script_t mysqld_t:dir { search getattr };
+allow httpd_sys_script_t mysqld_t:file { read open };
+allow httpd_sys_script_t postfix_master_t:dir { search getattr };
+allow httpd_sys_script_t postfix_master_t:file { read open };
+allow httpd_sys_script_t postfix_pickup_t:dir { search getattr };
+allow httpd_sys_script_t postfix_pickup_t:file { read open };
+allow httpd_sys_script_t postfix_qmgr_t:dir { search getattr };
+allow httpd_sys_script_t postfix_qmgr_t:file { read open };
+allow httpd_sys_script_t self:capability { setuid chown fsetid setgid fowner dac_override sys_nice sys_resource sys_ptrace kill };
+allow httpd_sys_script_t self:process { setpgid getsession };
+allow httpd_sys_script_t sshd_t:dir { search getattr };
+allow httpd_sys_script_t sshd_t:file { read open };
+allow httpd_sys_script_t syslogd_t:dir { search getattr };
+allow httpd_sys_script_t syslogd_t:file { read open };
+allow httpd_sys_script_t system_cronjob_t:dir getattr;
+allow httpd_sys_script_t system_dbusd_t:dir { search getattr };
+allow httpd_sys_script_t system_dbusd_t:file { read open };
+allow httpd_sys_script_t udev_t:dir { search getattr };
+allow httpd_sys_script_t udev_t:file { read open };
+allow httpd_sys_script_t unconfined_t:dir { search getattr };
+allow httpd_sys_script_t unconfined_t:file { read open };
+allow httpd_sys_script_t unconfined_t:process signal;
+allow httpd_sys_script_t user_devpts_t:chr_file { read write append ioctl };
+allow httpd_sys_script_t usr_t:file execute;
+allow httpd_sys_script_t var_t:dir { write read add_name };
+allow httpd_sys_script_t var_t:file { read getattr create append };
+#============= httpd_t ==============
+allow httpd_t hi_reserved_port_t:udp_socket name_bind;
+allow httpd_t httpd_sys_content_t:fifo_file { create unlink getattr setattr };
+allow httpd_t httpd_sys_content_t:sock_file { getattr unlink setattr };
+allow httpd_t httpd_sys_script_t:process { siginh rlimitinh noatsecure };
+allow httpd_t httpd_sys_script_t:unix_stream_socket { read write shutdown };
+allow httpd_t httpd_tmp_t:fifo_file { create unlink getattr setattr };
+allow httpd_t httpd_tmp_t:sock_file { getattr unlink setattr };
+allow httpd_t security_t:dir search;
+allow httpd_t self:capability { fowner fsetid };
+allow httpd_t selinux_config_t:dir search;
+allow httpd_t var_t:file { read getattr };
+allow httpd_t var_t:lnk_file { read getattr };
+##### END CODE BLOCK #####
+
+If you decide to add these abilities/items to the passenger module:
+semodule -r passenger
+cd /usr/src/selinux-devel && rm -rf passenger.mod passenger.pp
+modify passenger.te and add in the modules you want to have access to, then re-run:
+checkmodule -M -m -o passenger.mod passenger.te && semodule_package -o passenger.pp -m passenger.mod && semodule -i passenger.pp

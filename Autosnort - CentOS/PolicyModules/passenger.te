@@ -1,0 +1,124 @@
+#Passenger.te -- this SELinux policy module basically allows snorby to do everything it needs to in order to maintain itself and the system. 
+#It's insane that ROR/Snorby needs all this to work, in addition to other setsebools and chcons to work... but the bottom line is: You don't have to turn off SELinux to use this rails app.
+#For my own notes: checkmodule -M -m -o passenger.mod passenger.te && semodule_package -o passenger.pp -m passenger.mod && semodule -i passenger.pp
+module passenger 1.0;
+
+# Not an expert at SELinux module building, but this is similar to library declarations in C programming -- these are things that the module needs to be able to do and contexts the module needs to be able to understand
+
+require {
+        type init_t;
+        type initrc_t;
+        type system_cronjob_t;
+        type mysqld_t;
+        type usr_t;
+        type syslogd_t;
+        type system_dbusd_t;
+        type abrt_dump_oops_t;
+        type dhcpc_t;
+        type kernel_t;
+        type auditd_t;
+        type udev_t;
+        type mysqld_safe_t;
+        type postfix_pickup_t;
+        type sshd_t;
+        type crond_t;
+        type getty_t;
+		type anon_inodefs_t;
+        type httpd_tmp_t;
+        type devpts_t;
+		type user_devpts_t;
+        type httpd_sys_script_t;
+        type security_t;
+        type httpd_t;
+        type unconfined_t;
+        type selinux_config_t;
+        type hi_reserved_port_t;
+        type httpd_sys_content_t;
+		type httpd_sys_rw_content_t;
+        type var_t;
+        type cert_t;
+		type postfix_qmgr_t;
+        type postfix_master_t;
+        class file { getattr read create append write execute execute_no_trans open };
+        class process { siginh signal noatsecure rlimitinh setpgid getsession };
+        class unix_stream_socket { read write shutdown };
+        class chr_file { read write append ioctl };
+        class capability { setuid dac_override chown fsetid setgid fowner sys_nice sys_resource sys_ptrace kill };
+        class fifo_file { setattr create getattr unlink };
+        class sock_file { write getattr setattr create unlink };
+        class lnk_file { read getattr };
+        class udp_socket name_bind;
+        class dir { write read search add_name getattr };
+}
+#This stuff below is more of an access control list -- these are things the contexts below are requesting to be able to do in order to run properly.
+#============= httpd_sys_script_t ==============
+allow httpd_sys_script_t abrt_dump_oops_t:dir { search getattr };
+allow httpd_sys_script_t abrt_dump_oops_t:file { read open };
+allow httpd_sys_script_t anon_inodefs_t:file { read write };
+allow httpd_sys_script_t auditd_t:dir { search getattr };
+allow httpd_sys_script_t auditd_t:file { read open };
+allow httpd_sys_script_t cert_t:dir { search getattr };
+allow httpd_sys_script_t cert_t:file { read getattr };
+allow httpd_sys_script_t cert_t:lnk_file read;
+allow httpd_sys_script_t crond_t:dir { search getattr };
+allow httpd_sys_script_t crond_t:file { read open };
+allow httpd_sys_script_t devpts_t:chr_file { read write };
+allow httpd_sys_script_t dhcpc_t:dir { search getattr };
+allow httpd_sys_script_t dhcpc_t:file { read open };
+allow httpd_sys_script_t getty_t:dir { search getattr };
+allow httpd_sys_script_t getty_t:file { read open };
+allow httpd_sys_script_t httpd_sys_content_t:fifo_file setattr;
+allow httpd_sys_script_t httpd_sys_content_t:sock_file { create unlink setattr };
+allow httpd_sys_script_t httpd_sys_rw_content_t:file { execute execute_no_trans };
+allow httpd_sys_script_t httpd_t:dir { search getattr };
+allow httpd_sys_script_t httpd_t:file { read open };
+allow httpd_sys_script_t httpd_t:unix_stream_socket { read write };
+allow httpd_sys_script_t httpd_tmp_t:fifo_file setattr;
+allow httpd_sys_script_t httpd_tmp_t:sock_file { write create unlink setattr };
+allow httpd_sys_script_t init_t:dir { search getattr };
+allow httpd_sys_script_t init_t:file { read open };
+allow httpd_sys_script_t initrc_t:dir { search getattr };
+allow httpd_sys_script_t initrc_t:file { read open };
+allow httpd_sys_script_t kernel_t:dir { search getattr };
+allow httpd_sys_script_t kernel_t:file { read open };
+allow httpd_sys_script_t mysqld_safe_t:dir { search getattr };
+allow httpd_sys_script_t mysqld_safe_t:file { read open };
+allow httpd_sys_script_t mysqld_t:dir { search getattr };
+allow httpd_sys_script_t mysqld_t:file { read open };
+allow httpd_sys_script_t postfix_master_t:dir { search getattr };
+allow httpd_sys_script_t postfix_master_t:file { read open };
+allow httpd_sys_script_t postfix_pickup_t:dir { search getattr };
+allow httpd_sys_script_t postfix_pickup_t:file { read open };
+allow httpd_sys_script_t postfix_qmgr_t:dir { search getattr };
+allow httpd_sys_script_t postfix_qmgr_t:file { read open };
+allow httpd_sys_script_t self:capability { setuid chown fsetid setgid fowner dac_override sys_nice sys_resource sys_ptrace kill };
+allow httpd_sys_script_t self:process { setpgid getsession };
+allow httpd_sys_script_t sshd_t:dir { search getattr };
+allow httpd_sys_script_t sshd_t:file { read open };
+allow httpd_sys_script_t syslogd_t:dir { search getattr };
+allow httpd_sys_script_t syslogd_t:file { read open };
+allow httpd_sys_script_t system_cronjob_t:dir getattr;
+allow httpd_sys_script_t system_dbusd_t:dir { search getattr };
+allow httpd_sys_script_t system_dbusd_t:file { read open };
+allow httpd_sys_script_t udev_t:dir { search getattr };
+allow httpd_sys_script_t udev_t:file { read open };
+allow httpd_sys_script_t unconfined_t:dir { search getattr };
+allow httpd_sys_script_t unconfined_t:file { read open };
+allow httpd_sys_script_t unconfined_t:process signal;
+allow httpd_sys_script_t user_devpts_t:chr_file { read write append ioctl };
+allow httpd_sys_script_t usr_t:file execute;
+allow httpd_sys_script_t var_t:dir { write read add_name };
+allow httpd_sys_script_t var_t:file { read getattr create append };
+#============= httpd_t ==============
+allow httpd_t hi_reserved_port_t:udp_socket name_bind;
+allow httpd_t httpd_sys_content_t:fifo_file { create unlink getattr setattr };
+allow httpd_t httpd_sys_content_t:sock_file { getattr unlink setattr };
+allow httpd_t httpd_sys_script_t:process { siginh rlimitinh noatsecure };
+allow httpd_t httpd_sys_script_t:unix_stream_socket { read write shutdown };
+allow httpd_t httpd_tmp_t:fifo_file { create unlink getattr setattr };
+allow httpd_t httpd_tmp_t:sock_file { getattr unlink setattr };
+allow httpd_t security_t:dir search;
+allow httpd_t self:capability { fowner fsetid };
+allow httpd_t selinux_config_t:dir search;
+allow httpd_t var_t:file { read getattr };
+allow httpd_t var_t:lnk_file { read getattr };
