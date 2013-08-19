@@ -1,6 +1,6 @@
 #!/bin/bash
-#BASE shell script 'module'
-#Sets up BASE for for Autosnort
+#BASE shell script 'module' for Debian.
+#Sets up BASE for Autosnort 
 
 ########################################
 #logging setup: Stack Exchange made this.
@@ -57,6 +57,12 @@ print_status "Configuring php via php-pear."
 pear config-set preferred_state alpha &>> $base_logfile
 pear channel-update pear.php.net &>> $base_logfile
 pear install --alldeps Image_Color Image_Canvas Image_Graph &>> $base_logfile
+if [ $? != 0 ];then
+	print_error "Failed to acquire required packages for Base. See $base_logfile for details."
+	exit 1
+else
+	print_good "Successfully acquired packages via pear install."
+fi
 
 print_good "Successfully configured php via php-pear."
 

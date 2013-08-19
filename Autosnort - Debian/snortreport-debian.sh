@@ -1,6 +1,6 @@
 #!/bin/bash
-#Aanval shell script 'module'
-#Sets up snort report for Autosnort
+#Snortreport shell script 'module'
+#Sets up snort report for Autosnort on Debian Systems
 
 ########################################
 #logging setup: Stack Exchange made this.
