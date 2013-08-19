@@ -1,0 +1,204 @@
+#!/bin/bash
+#
+# snortbarn - Starts up Snort and Barnyard2
+# chkconfig: 345 65 25
+# description: Snort is an Open Source Intrusion Detection System
+# This service starts up the snort daemon, as well as the barnyard2 daemon. 
+# processnames: snort, barnyard2
+# pidfiles: /var/run/snort_eth*.pid, /var/run/barnyard2_eth*.pid
+
+### BEGIN INIT INFO
+# Provides: snort barnyard2
+# Required-Start: $local_fs $network $syslog mysqld
+# Required-Stop: $local_fs $syslog
+# Should-Start: $syslog
+# Should-Stop: $network $syslog
+# Default-Start: 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Start up the Snort IDS/IPS Daemon and the Barnyard2 Logging Daemon
+# Description: 
+# Snort is an Open Source IDS/IPS/Network Sniffer By Sourcefire.
+# Barnyard2 is a logging daemon that can parse snort's binary unified2 format and output it into many different formats.
+# This service starts up the Snort IDS daemon and Barnyard 2 daemon
+### END INIT INFO
+
+# source function library 
+. /etc/rc.d/init.d/functions
+
+RETVAL=0
+RETVAL2=0
+prog="snort"
+prog2="barnyard2"
+lockfile=/var/lock/subsys/$prog
+lockfile2=/var/lock/subsys/$prog2
+PID_FILE=/var/run/snort_eth*.pid
+PID_FILE2=/var/run/barnyard2_eth*.pid
+
+
+# Change these variables to suit your snort installation
+#The location of the snort binary
+SNORTD=/usr/local/snort/bin/snort
+#The location of the barnyard2 binary
+BY2D=/usr/local/bin/barnyard2
+#The sniffing interface for snort
+snort_iface=eth1
+#Command line execution options for snort
+OPTIONS="-D -u snort -g snort -c /usr/local/snort/etc/snort.conf -i $snort_iface"
+#Command line execution options for barnyard 2
+OPTIONS2="-c /usr/local/snort/etc/barnyard2.conf -G /usr/local/snort/etc/gen-msg.map -S /usr/local/snort/etc/sid-msg.map -d /var/log/snort -f snort.u2 -w /var/log/snort/barnyard2.waldo -D"
+#Only set this variable if you are running Aanval. This sets where the idsBackground.pl script is located to start the Aanval BPUs.
+BPUD=/var/www/html/aanval/apps/idsBackground.pl
+
+
+runlevel=$(set -- $(runlevel); eval "echo \$$#" )
+
+start() 
+{
+
+	echo -n "Bringing up snort interface"
+	/sbin/ifconfig $snort_iface up -arp -multicast promisc
+	if [ $? != 0 ]; then
+		failure
+		echo ""
+	else 
+		success
+		echo ""
+	fi
+	[ -x $SNORTD ] || exit 5
+
+	echo -n "Starting $prog: "
+	$SNORTD $OPTIONS
+	RETVAL=$?
+	if [ $RETVAL != 0 ]; then
+		failure
+		echo ""
+	else
+		touch $lockfile
+		success
+		echo ""
+	fi
+
+	[ -x $BY2D ] || exit 5
+	echo -n "Starting $prog2: "
+	$BY2D $OPTIONS2
+	RETVAL2=$?
+        if [ $RETVAL2 != 0 ]; then
+                failure
+                echo ""
+        else
+                touch $lockfile2
+                success
+                echo ""
+        fi
+	stat $BPUD >/dev/null 2>&1
+	if [ $? == "0" ]; then
+		echo -n "Starting Aanval BPUs"
+		$BPUD -start && success
+		echo ""
+	fi
+		
+	if [ "$RETVAL" == "$RETVAL2" ]; then
+		return $RETVAL
+	fi
+}
+
+stop() 
+{
+	echo -n $"Stopping $prog: " 
+	killall $SNORTD
+	if [ -e $PID_FILE ]; then
+		chown -R snort:snort /var/run/snort_eth*.* &&
+		rm -f /var/run/snort_eth*.pi* 
+	fi
+	RETVAL=$?
+	# if we are in halt or reboot runlevel kill all running sessions 
+	# so the TCP connections are closed cleanly
+	if [ "x$runlevel" = x0 -o "x$runlevel" = x6 ] ; then
+		trap TERM
+		killall $prog 2>/dev/null 
+		trap TERM
+	fi
+	        if [ $RETVAL != 0 ]; then
+                failure
+                echo ""
+        else
+                rm -f $lockfile
+                success
+                echo ""
+        fi
+
+	
+	echo -n $"Stopping $prog2: "
+	killall $BY2D
+	if [ -e $PID_FILE2 ]; then
+		rm -f /var/run/snort/barnyard2_eth*.pi*
+	fi
+	RETVAL2=$?
+	# if we are in halt or reboot runlevel kill all running sessions 
+	if [ "x$runlevel" = x0 -o "x$runlevel" = x6 ] ; then
+		trap TERM
+		killall $prog2 2>/dev/null 
+		trap TERM
+	fi
+	if [ $RETVAL2 != 0 ]; then
+                failure
+                echo ""
+        else
+                rm -f $lockfile2
+                success
+                echo ""
+        fi
+	stat $BPUD >/dev/null 2>&1
+	if [ $? == "0" ]; then
+		echo -n "Stopping Aanval BPUs"
+		$BPUD -stop
+		echo ""
+	fi
+
+	if [ "$RETVAL" == "$RETVAL2" ]; then
+                return $RETVAL
+        fi
+}
+
+restart() { 
+    stop
+    start 
+}
+
+rh_status() {
+	status -p $PID_FILE $SNORTD
+	status -p $PID_FILE2 $BY2D
+}
+
+rh_status_q() {
+	rh_status >/dev/null 2>&1
+}
+
+case "$1" in 
+	start)
+		rh_status_q && exit 0 
+		start
+	;;
+	stop)
+		if ! rh_status_q; then
+			rm -f $lockfile
+			rm -f $lockfile2
+			exit 0 
+		fi
+       		stop
+	;; 
+	restart)
+		restart
+	;; 
+	status)
+		rh_status
+		RETVAL=$?
+		if [ $RETVAL -eq 3 -a -f $lockfile ] ; then
+			RETVAL=2
+ 		fi
+	;; 
+	*)
+		echo $"Usage: $0 {start|stop|restart|status}" 
+		RETVAL=2
+esac
+exit $RETVAL
