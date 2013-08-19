@@ -1,7 +1,56 @@
 ###############################
+Installation Instructions
+###############################
+
+1. copy the autosnort-centOS-mm-dd-yyyy.sh script to root's home directory (/root) from the autosnort-master/autosnort - CentOS directory
+2. decide which interface you would like to install there are five choices:
+snortreport
+BASE
+aanval
+snorby
+remote syslog
+3. Copy the shell script named after the interface you wish to install from autosnort-master/autosnort - CentOS/ directory and place it in /root along with the autosnort-CentOS-mm-dd-yyyy.sh script (example: if you want to install snorby, copy the snort-CentOS.sh script to /root along with autosnort-centOS-mm-dd-yyyy.sh script
+4. Run the autosnort-centOS-mm-dd-yyyy.sh script:
+as root:
+cd /root;bash autosnort-centOS-mm-dd-yyyy.sh
+alternatively:
+cd /root;chmod u+x autosnort-centOS-mm-dd-yyyy.sh;./autosnort-centOS-mm-dd-yyyy.sh
+via sudo:
+cd /root;sudo bash autosnort-centOS-mm-dd-yyyy.sh
+5. The script will prompt you as it needs answers from you. Answer the questions and before you know it, the installation is done.
+
+###############################
 autosnort-centOS Release Notes
 ###############################
-Current Release: autosnort-centOS-04-21-2013.sh
+Current Release: autosnort-centOS-08-18-2013.sh
+
+Release Notes:
+
+- Updated the entire look and feel of the main autosnort installation script. CentOS/RHEL users now have the metasploit like prompts just like the Debian and Ubuntu users. Only things the user should be aware of are printed to the screen now:
+-- Status updates are in blue
+-- Notifications are in yellow
+-- Successful modifications are in green 
+-- Unsuccessful modifcations/installations are in red 
+- The installations scripts no longer spew output all over your screen buffer. Thanks to neat trick I picked up from stack exchange, the output of every major command is saved in two separate log files in /var/log:
+--/var/log/autosnort_install.log -- contains output from all the major commands ran from the main autosnort installation script
+--/var/log/[interfacename]_install.log -- contains output from all the major commands ran from the interface installation script for the interface you chose to install. 
+- The main autosnort installation script and all the web interface installation scripts have been updated with the new metasploit-like prompts and the background logging. This includes:
+--autosnort-CentOS-08-18-2013.sh
+--snortreport-CentOS.sh
+--base-CentOS.sh
+--aanval-CentOS.sh
+--syslog_full-CentOS.sh
+--snorby-CentOS.sh
+- All web interface installation scripts for RHEL derivatives have had their DocumentRoot and Directory directives reconfigured to serve out the web interface of your choice. This means all you have to do is point your web browser to the ip address of your sensor's management interface, and provided you reconfigured ip tables to allow port 80 inbound (system-configure-firewall-tui), your web interface will pop up automatically.
+- All web interface installation scripts for RHEL-based distros are 100% compatible with SELinux
+- All web interface installation scripts for RHEL-based distros have had the ownership of DocumentRoot changed to the apache user and group
+-Fixed minor grammatical and syntactical errors littered throughout the script.     
+
+##################
+Previous Releases
+##################
+
+autosnort-centOS-04-21-2013.sh
 
 Release Notes:
 
@@ -30,9 +79,6 @@ database passwrd: [snort database user's password]
 - The script has been modified to generate a new barnyard2.conf on the fly as opposed to using sed to modify the .conf file provided with the source. The barnyard2.conf file provided with barnyard2's source code is copied to /usr/local/snort/etc as barnyard2.conf.orig in the event it is needed in the future (e.g. modify output settings, etc.)
 - Of course, the output interface menu has been modified to include BASE and syslog_full
 
-##################
-Previous Releases
-##################
 
 autosnort-centOS-04-14-2013.sh
 
