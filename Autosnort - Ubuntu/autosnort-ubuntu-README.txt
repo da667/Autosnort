@@ -1,23 +1,56 @@
+###############################
+Installation Instructions
+###############################
+
+1. copy the autosnort-ubuntu-mm-dd-yyyy.sh script to root's home directory (/root) from the autosnort-master/autosnort - ubuntu directory
+2. decide which interface you would like to install there are five choices:
+snortreport
+BASE
+aanval
+snorby
+remote syslog
+3. Copy the shell script named after the interface you wish to install from autosnort-master/autosnort - ubuntu/ directory and place it in /root along with the autosnort-ubuntu-mm-dd-yyyy.sh script (example: if you want to install snorby, copy the snort-ubuntu.sh script to /root along with autosnort-ubuntu-mm-dd-yyyy.sh script
+4. Run the autosnort-ubuntu-mm-dd-yyyy.sh script:
+as root:
+cd /root;bash autosnort-ubuntu-mm-dd-yyyy.sh
+alternatively:
+cd /root;chmod u+x autosnort-ubuntu-mm-dd-yyyy.sh;./autosnort-ubuntu-mm-dd-yyyy.sh
+via sudo:
+cd /root;sudo bash autosnort-ubuntu-mm-dd-yyyy.sh
+5. The script will prompt you as it needs answers from you. Answer the questions and before you know it, the installation is done.
+
 ##############################
 autosnort-Ubuntu Release Notes
 ##############################
 
-Current Release: autosnort-ubuntu-06-15-2013
+Current Release: autosnort-ubuntu-08-18-2013.sh
+
+Release Notes:
+
+- In an effort to make the mysql installs uniform between all autosnort builds and promote better security, I've made the mysql-server installation for Ubuntu and Debian silent, but now, just like with the centOS script, the /usr/bin/mysql_secure_installation script is ran as a part of autosnort. huzzah for better secured databases.
+
+
+Bug Fixes:
+
+- Apparently at some point between now and june, the passenger output directory for the mod_passenger.so binary changed the name of the directory from "libout" to "buildout". sigh. consistency is awesome, don't you agree? I only discovered this during testing passenger during the centOS testing process. 
+- Same as the centOS script, found minor grammatical and syntactical errors littered all over the script. Found and fixed what I could.
+
+##################
+Previous Releases
+##################
+
+autosnort-ubuntu-06-15-2013
 
 - This version is almost a complete re-write of the script. Quite a few nicer/newer features added to this build:
 -- Output from the script has been minimized where possible. Instead of writing all command output to the screen and "puking" all over the screen buffer, users are now presented with nice, metasploit like prompts, giving a basic run-down of what the script is doing (blue output), things the user needs to pay attention to (yellow output), and whether or not a given task in the script was successful (green is good, red is bad). Instead of outputting everything to the screen...
 -- ...Autosnort and all of the child shell scripts now automatically log the entire installation. Log files are written to /var/log. The primary script logs to autosnort_install.log, the child scripts also log to /var/log and are named after their namesake web interface. (e.g. snorby would be named snorby_install.log). This is in an effort to make troubleshooting easier for users -- you can review the installation logs to see what went wrong, or if you contact me, you can send me a copy and I can try to troll through them to figure out what exploded
 -- Related to the logging/output printing improvements, the print statements actually tell you where the different components are installed
--- Support for Debian 13.04 officially added, backwards compatibility with Ubuntu 12.04 maintained
+-- Support for Ubuntu 13.04 officially added, backwards compatibility with Ubuntu 12.04 maintained
 -- Did some magic with the apache default-site config file to make it to where, no matter what web interface you install, you can point your web browser to your sensor's IP address and be greeted by your web interface (Gritty details: for each web interface install, the apache default-site DocumentRoot gets set to where the web interface is the DocumentRoot -- for example, if you install aanval, you can browse to http://[address] and be immediately greeted by aanval.)
 -- Added an option to create an entry for Aanval's BPU subsystem in rc.local to start them up on boot
 
 Bug fixes:
 - Fixed an annoying problem -- different versions of ubuntu store libmysqlclient.so, a necessary file for barnyard2, in a different place (Just like Debian.. Consistently inconsistent..). Made it to where the script does "find /usr/lib -name libmysqlclient.so" to tell the barnyard2 ./configure script where the libmysqlclient.so libriaries are located, instead of a bunch of if/thens.
-
-##################
-Previous Releases
-##################
 
 autosnort-ubuntu-05-18-2013.sh
 
@@ -90,7 +123,7 @@ Bug Fixes:
 - Resolved a problem with Autosnort regarding a recent change in Barnyard2. Barnyard 2.13 BETA2 introduced a change where it doesn't like it if you give it directives via the command line and via its configuration file anymore. It is specifically throwing an error because we tell barnyard 2 where to find the sid and gen-msg.map via the -S and -G options, as well as via the barnyard2.conf file. I've since removed the -S and -G options that autosnort used for barnyard2 to fix this issue.
 
 Other Notes:
-- CentOS users have been enjoying a new snortbarn script for a little while now, Well now it's time for Ubuntu users to enjoy an init script for snort and barnyard2.
+- ubuntu users have been enjoying a new snortbarn script for a little while now, Well now it's time for Ubuntu users to enjoy an init script for snort and barnyard2.
 -- The snortbarn script has a variables section to change the init script to suit your Autosnort (or non Autosnort) snort installation
 -- Save the snortbarn script, copy it to /etc/init.d and make it executable.
 -- Remove the ifconfig snort and barnyard2 entries from rc.local
