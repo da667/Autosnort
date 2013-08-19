@@ -1,8 +1,45 @@
+###############################
+Installation Instructions
+###############################
+
+1. copy the autosnort-debian-mm-dd-yyyy.sh script to root's home directory (/root) from the autosnort-master/autosnort - debian directory
+2. decide which interface you would like to install there are five choices:
+snortreport
+BASE
+aanval
+snorby
+remote syslog
+3. Copy the shell script named after the interface you wish to install from autosnort-master/autosnort - debian/ directory and place it in /root along with the autosnort-debian-mm-dd-yyyy.sh script (example: if you want to install snorby, copy the snort-debian.sh script to /root along with autosnort-debian-mm-dd-yyyy.sh script
+4. Run the autosnort-debian-mm-dd-yyyy.sh script:
+as root:
+cd /root;bash autosnort-debian-mm-dd-yyyy.sh
+alternatively:
+cd /root;chmod u+x autosnort-debian-mm-dd-yyyy.sh;./autosnort-debian-mm-dd-yyyy.sh
+via sudo:
+cd /root;sudo bash autosnort-debian-mm-dd-yyyy.sh
+5. The script will prompt you as it needs answers from you. Answer the questions and before you know it, the installation is done.
+
 ##############################
 autosnort-Debian Release Notes
 ##############################
 
-Current Release: autosnort-debian-06-15-2013
+Current Release: autosnort-debian-08-18-2013.sh
+
+Release Notes:
+
+- In an effort to make the mysql installs uniform between all autosnort builds and promote better security, I've made the mysql-server installation for Ubuntu and Debian silent, but now, just like with the centOS script, the /usr/bin/mysql_secure_installation script is ran as a part of autosnort. huzzah for better secured databases.
+
+
+Bug Fixes:
+
+- Apparently at some point between now and june, the passenger output directory for the mod_passenger.so binary changed the name of the directory from "libout" to "buildout". sigh. consistency is awesome, don't you agree? I only discovered this during testing passenger during the centOS testing process. 
+- Same as the centOS script, found minor grammatical and syntactical errors littered all over the script. Found and fixed what I could.
+
+##################
+Previous Releases
+##################
+
+autosnort-debian-06-15-2013
 
 Release Notes:
 
@@ -16,11 +53,6 @@ Release Notes:
 
 Bug fixes:
 - Fixed an annoying problem with Debian 6/7 -- different versions of the operating system store libmysqlclient.so, a necessary file for barnyard2, in a different place. Made it to where the script does "find /usr/lib -name libmysqlclient.so | dirname" to tell the barnyard2 ./configure script where the libmysqlclient.so libriaries are located, instead of a bunch of if/thens.
-
-
-##################
-Previous Releases
-##################
 
 autosnort-debian-05-19-2013
 
@@ -175,7 +207,7 @@ other notes:
 
 Hello folks, this is the readme specific to the Debian edition of autosnort.
 
-- For the most part, this is a complete clone of the autosnort ubuntu script except with changes where required (e.g. version checking) and a couple of minor changes:
+- For the most part, this is a complete clone of the autosnort debian script except with changes where required (e.g. version checking) and a couple of minor changes:
 
 - As part of the installation http://www.dotdeb.org (deb and deb-src) and its gpg key are added in order to install necessary components of snort and snortreport.
 
