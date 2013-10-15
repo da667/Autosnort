@@ -157,23 +157,29 @@ fi
 #The EPEL repos are required to install snort.
 #Noticed that the EPEL RPM for 32 and 64-bit centos is exactly the same (identical md5sums)
 
+rpm -q epel-release &>> $logfile
 
-
-print_status "Installing EPEL repos for required packages to build snort on CentOS."
-arch=`uname -i`
-
-wget https://dl.fedoraproject.org/pub/epel/$release/$arch &>> $logfile
-epel_package=`cat index.html | grep epel-release | cut -d\" -f2`
-rm -rf index.html
-wget https://dl.fedoraproject.org/pub/epel/$release/$arch/$epel_package &>> $logfile
-rpm -Uvh $epel_package &>> $logfile
 if [ $? -ne 0 ]; then
-    print_error "Failed to acquire EPEL package. Please check $logfile for details."
-	exit 1	
+
+    print_status "Installing EPEL repos for required packages to build snort on CentOS."
+    arch=`uname -i`
+
+    wget https://dl.fedoraproject.org/pub/epel/$release/$arch &>> $logfile
+    epel_package=`cat index.html | grep epel-release | cut -d\" -f2`
+    rm -rf index.html
+    wget https://dl.fedoraproject.org/pub/epel/$release/$arch/$epel_package &>> $logfile
+    rpm -Uvh $epel_package &>> $logfile
+    if [ $? -ne 0 ]; then
+        print_error "Failed to acquire EPEL package. Please check $logfile for details."
+        exit 1	
+    else
+        print_good "EPEL RPM acquired and successfully installed.."
+    fi
+    rm -rf $epel_package
+
 else
-    print_good "EPEL RPM acquired and successfully installed.."
+    print_good "EPEL RPM already installed."
 fi
-rm -rf $epel_package
 
 ########################################
 
