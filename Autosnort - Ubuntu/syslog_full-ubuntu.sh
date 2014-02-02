@@ -1,9 +1,10 @@
 #!/bin/bash
 #rsyslog module
 #configures barnyard2 to use syslog full logging format over udp/514
+#Updated on 2/1/2014
 
 ########################################
-#Metasploit-like print statements: status, good, bad and notification. Gratouitiously copied from Darkoperator's metasploit install script.
+#Metasploit-like print statements: status, good, bad and notification. Gratuitously copied from Darkoperator's metasploit install script.
 
 function print_status ()
 {
@@ -31,8 +32,8 @@ function print_notification ()
 
 print_status "Reconfiguring barnyard2.conf output plugin to syslog_full."
 
-cat /usr/local/snort/etc/barnyard2.conf | grep -v mysql > /root/barnyard2.conf.tmp
-sensor_iface=`cat /root/barnyard2.conf.tmp | grep interface | cut -d" " -f3`
+grep -v mysql /usr/local/snort/etc/barnyard2.conf > /root/barnyard2.conf.tmp
+sensor_iface=`grep interface /root/barnyard2.conf.tmp | cut -d" " -f3`
 
 read -p "What would you like the sensor's name to appear as?" sensor_name
 read -p "What is the ip address of the syslog server? (in x.x.x.x format; e.g. 192.168.1.254)" syslog_server

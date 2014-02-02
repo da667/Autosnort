@@ -4,28 +4,87 @@ Installation Instructions
 
 1. copy the autosnort-ubuntu-mm-dd-yyyy.sh script to root's home directory (/root) from the autosnort-master/autosnort - ubuntu directory
 2. decide which interface you would like to install there are five choices:
-snortreport
+
+Snort Report
 BASE
-aanval
-snorby
+Aanval
+Snorby
 remote syslog
+
 3. Copy the shell script named after the interface you wish to install from autosnort-master/autosnort - ubuntu/ directory and place it in /root along with the autosnort-ubuntu-mm-dd-yyyy.sh script (example: if you want to install snorby, copy the snort-ubuntu.sh script to /root along with autosnort-ubuntu-mm-dd-yyyy.sh script
 4. Run the autosnort-ubuntu-mm-dd-yyyy.sh script:
+
 as root:
 cd /root;bash autosnort-ubuntu-mm-dd-yyyy.sh
+
 alternatively:
 cd /root;chmod u+x autosnort-ubuntu-mm-dd-yyyy.sh;./autosnort-ubuntu-mm-dd-yyyy.sh
+
 via sudo:
 cd /root;sudo bash autosnort-ubuntu-mm-dd-yyyy.sh
+
 5. The script will prompt you as it needs answers from you. Answer the questions and before you know it, the installation is done.
 
 ##############################
 autosnort-Ubuntu Release Notes
 ##############################
 
-Current Release: autosnort-ubuntu-08-18-2013.sh
+Current Release:  autosnort-ubuntu-02-01-2014.sh
 
 Release Notes:
+
+-A new year, a new autosnort release. I plan on releasing more than once yearly. I hope.
+
+-autosnort-ubuntu script changes:
+--Removed libpcap-ruby as a core package requirement. It isn't really needed, and as of Ubuntu 13.10, it is no longer even in the package repositories. Speaking of Ubuntu 13.10...
+--Officially added support for Ubuntu 13.10
+--Removed all instances of catting and piping to grep. Grep is capable of reading from files directly. Results in a slight efficiency increase
+--Lots of minor changes to formatting and output given to the user to make things a little more user-friendly.
+--pulledpork 0.7.0 has been out since September. This autosnort release has been upgraded to use pulledpork 0.7.0 and its new features
+--- In addition to download the standard VRT rule release, pulledpork now downloads the Snort community rules, and the ip blacklist from the VRT labs site
+--- pulledpork now generates sid-msg.map version 2 output
+--Efficiency enhancement: The entire pulledpork routine only runs pulledpork once, making the rule setup phase significantly faster.
+
+-snorby-ubuntu script changes:
+--Lots of minor formatting changes
+--Removed all instances of catting and piping to grep. Grep files directly now.
+--the rvm (Ruby Version Manager) tool download and installation is now torn down a bit more cleanly.
+--Changed permissions of database.yml and snorby_config.yml to be readable only by the www-data user (chmod 400). Everything still works just fine.
+--Stopped using a2ensite and a2dissite: Apache 2.4 (Ubuntu 13.10+) seems to be very pickly about only allowing users to use a2ensite and a2dissite on files ending in ".conf" in /etc/apache2/sites-available. Not only that, even if you manually make the symlinks to sites-enabled yourself, Apache still won't recognize them. Renamed the /etc/apache2/sites-available/snorby file to snorby.conf, and now handle manually creation/removal of symlinks to sites-available. This is to ensure compatibility between older versions of Ubuntu using the older, more lenient versions of Apache, and the newest Ubuntu release, using Apache 2.4+
+
+snortreport-ubuntu script changes:
+--Very minor formatting changes
+--Version 1.3.4 came out last september and I had no clue.
+--No more short open tags. the snortreport-ubuntu script now removes every single last PHP short open tag without breaking anything else; Kind of a mandatory change, since Ubuntu 13.10 ships with the short_open_tag directive turned off in php.ini (Like it should be)
+--Ensured compatibility with Ubuntu 12.X and 13.X versions by making a very minor change the sed line that modifies DocumentRoot
+--Originally, the guide called for installation of jpgraph 1.27.1; a very old version of jpgraph. Autosnort now installs jpgraph 3.05, not quite as old, works just as well.
+--The script now changes ownership for jpgraph and snortreport directories to be owned by www-data user and group (recursively)
+--Changed file permissions on srconf.php. This file is now only readable by the www-data user. Everything still works just fine.
+
+-syslog_full-ubuntu script changes:
+--Minor formatting changes.
+--Removed all "cat" commands for slightly more efficient shell script.
+
+BASE-ubuntu and Aanval-ubtu script changes
+--Very minor formatting changes
+--Ensured compatibility with Ubuntu 12.X and 13.X versions by making a very minor change the sed line that modifies DocumentRoot
+
+
+Bug Fixes:
+-autosnort-ubuntu:
+--The OS version check at the start of the script was broken, not doing proper string comparison, so I fixed that.
+
+snorby-ubuntu:
+--The script show now properly download the latest ruby 1.9.x release, like it used to (fixes autosnort issue 19)
+--Clone of snorby from github is now https only (Pre-cursor to fixing issue 19 on CentOS)
+--Resolved autosnort issue 20 (snorby issue 323) via work-around that involves running bundler --no-deployment, followed by running bundler again with --deployment. It now takes bundler twice as long to perform its installation, but for now, this is the only viable work-around I've found until Mephux/Snorby team closes out this issue.
+
+
+##################
+Previous Releases
+##################
+
+autosnort-ubuntu-08-18-2013.sh
 
 - In an effort to make the mysql installs uniform between all autosnort builds and promote better security, I've made the mysql-server installation for Ubuntu and Debian silent, but now, just like with the centOS script, the /usr/bin/mysql_secure_installation script is ran as a part of autosnort. huzzah for better secured databases.
 
@@ -34,10 +93,6 @@ Bug Fixes:
 
 - Apparently at some point between now and june, the passenger output directory for the mod_passenger.so binary changed the name of the directory from "libout" to "buildout". sigh. consistency is awesome, don't you agree? I only discovered this during testing passenger during the centOS testing process. 
 - Same as the centOS script, found minor grammatical and syntactical errors littered all over the script. Found and fixed what I could.
-
-##################
-Previous Releases
-##################
 
 autosnort-ubuntu-06-15-2013
 

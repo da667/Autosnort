@@ -68,7 +68,7 @@ print_good "RVM configured."
 
 print_status "Hitting ruby-lang.org to determine the latest version of ruby 1.9.x to install.."
 
-wget http://ruby-lang.org/en/downloads -O /tmp/downloads.html &>> $snorby_logfile
+wget https://ruby-lang.org/en/downloads --no-check-certificate -O /tmp/downloads.html &>> $snorby_logfile
 if [ $? -ne 0 ]; then
 	print_error "Failed to hit ruby-lang.org. Please see $snorby_logfile for more details."
 	exit 1
@@ -78,7 +78,7 @@ fi
 
 print_status "doing some shell magic to pick out the latest ruby 1.9.X version."
 
-rubyver=`cat /tmp/downloads.html | grep -e "ruby-" | head -2 | tail -1 | cut -d"-" -f3,4 | cut -d"." -f1,2,3`
+rubyver=`cat /tmp/downloads.html | grep -e "ruby-1" | head -2 | tail -1 | cut -d"-" -f3,4 | cut -d"." -f1,2,3`
 print_status "installing ruby-$rubyver (this will take a little while)"
 rvm install ruby-$rubyver &>> $snorby_logfile
 if [ $? -ne 0 ]; then
@@ -104,7 +104,7 @@ cd /var/www/
 
 print_status "Grabbing snorby via github."
 
-git clone http://github.com/Snorby/snorby.git &>> $snorby_logfile
+git clone https://github.com/Snorby/snorby.git &>> $snorby_logfile
 if [ $? -ne 0 ]; then
 	print_error "Failed to grab Snorby. Please see $snorby_logfile for more details."
 	exit 1

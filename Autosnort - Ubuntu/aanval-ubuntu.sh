@@ -6,6 +6,7 @@
 #TO FIGURE OUT WHERE AANVAL IS TRYING TO LOOK FOR THINGS, NOT TO MENTION
 #SOME RE-WORKING OF AUTOSNORT ITSELF...THIS IS STRICTLY TO GET THE IDS 
 #EVENT VIEW FUNCTIONALITY WORKING.
+#Updated on 2/1/2014
 
 ########################################
 #logging setup: Stack Exchange made this.
@@ -17,7 +18,7 @@ exec &> ${aanval_logfile}.pipe
 rm ${aanval_logfile}.pipe
 
 ########################################
-#Metasploit-like print statements: status, good, bad and notification. Gratouitiously copied from Darkoperator's metasploit install script.
+#Metasploit-like print statements: status, good, bad and notification. Gratuitously copied from Darkoperator's metasploit install script.
 
 function print_status ()
 {
@@ -41,8 +42,8 @@ function print_notification ()
 
 ########################################
 
-print_status "Grabbing packages for aanval."
-#grab packages for aanval most of the primary required packages are pulled by  the main AS script. Also suppressing the message for libphpadodb
+print_status "Grabbing packages for aanval.."
+#grab packages for aanval most of the primary required packages are pulled by  the main AS script. Also suppressing the message for libphp-adodb
 echo libphp-adodb  libphp-adodb/pathmove note | debconf-set-selections
 apt-get install -y zlib1g-dev libmysqld-dev byacc libxml2-dev zlib1g php5 php5-mysql php5-gd nmap libssl-dev libcrypt-ssleay-perl libphp-adodb php-pear &>> $aanval_logfile
 
@@ -55,18 +56,15 @@ fi
 
 ########################################
 
-print_status "making the aanval web UI directory"
-
 #Make the aanval directory under /var/www, and cd into it
 mkdir /var/www/aanval
 cd /var/www/aanval
 
 
 
-# We need to grab aanval from the aanval.com site. If this fails, we exit the script with a status of 1
-# A check needs to be built into the main script to verify this script exits cleanly. If it doesn't,
-# The user should be informed and brought back to the main interface selection menu.
-print_status "Grabbing aanval."
+# We need to grab aanval from the aanval.com site
+
+print_status "Grabbing aanval.."
 wget https://www.aanval.com/download/pickup -O aanval.tar.gz --no-check-certificate &>> $aanval_logfile
 if [ $? != 0 ];then
 	print_error "Attempt to pull down aanval console failed. See $aanval_logfile for details."
@@ -91,7 +89,7 @@ rm -rf aanval.tar.gz
 #Creating the database infrastructure for Aanval -- We make the database aanvaldb and give the snort user the ability to do work on it.
 #This database is totally separate from the snort database, BOTH must be present.
 
-print_status "Configuring mysql to work with Aanval."
+print_status "Configuring mysql to work with Aanval.."
 
 while true; do
 	print_notification "Enter the mysql root user password to create the aanvaldb database."
@@ -105,9 +103,7 @@ while true; do
 	fi
 done
 
-#note: need to pass off mysql_pass_1 as an environment variable in the main script:
-#code: ask for snort database password, save to var MYSQL_PASS_1 (yes, case matters)
-#export MYSQL_PASS_1, call it in child shell script for aanval. ($MYSQL_PASS_1)
+#Here we call the MYSQL_PASS_1 variable from the main autosnort script in order to give the snort database user access to the aanval db for maintenance.
 
 while true; do
 	print_notification "you'll need to enter the mysql root user password one more time to grant the snort database user permissions to the aanvaldb database."
@@ -123,12 +119,12 @@ done
 
 ########################################
 
-print_status "Granting ownership of /var/www/aanval to www-data."
+print_status "Granting ownership of /var/www/aanval to www-data.."
 
 chown -R www-data:www-data /var/www/aanval
 
 print_status "Resetting DocumentRoot to /var/www/aanval"
-sed -i 's/DocumentRoot \/var\/www/DocumentRoot \/var\/www\/aanval/' /etc/apache2/sites-available/default
+sed -i 's/DocumentRoot \/var\/www/DocumentRoot \/var\/www\/aanval/' /etc/apache2/sites-available/*default*
 
 print_status "Starting background processors for Aanval web interface."
 cd /var/www/aanval/apps
