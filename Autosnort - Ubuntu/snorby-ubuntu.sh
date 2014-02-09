@@ -149,7 +149,7 @@ while true; do
 	fi
 done
 
-print_good "Snorby successfully configured"
+print_good "Snorby successfully configured."
 
 ########################################
 
@@ -182,7 +182,7 @@ print_good "Apache successfully configured to use passenger."
 
 #add to sites-avaiable/snorby.conf
 
-print_status "Configuring apache to point to snorby's DocumentRoot as the default site."
+print_status "Configuring apache to point to snorby's DocumentRoot as the default site.."
 
 echo "<VirtualHost *:80>" >> /etc/apache2/sites-available/snorby.conf
 echo "     ServerName snorby.localhost" >> /etc/apache2/sites-available/snorby.conf

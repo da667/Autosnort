@@ -1,9 +1,10 @@
 #!/bin/bash
-#Autosnort script for Ubuntu 12.04+
+#autosnort script for Debian 6 and 7
 
 #Functions, functions everywhere.
+#Below are 
 
-# Logging setup. Ganked this entirely from stack overflow. Uses FIFO/pipe magic to log all the output of the script to a file. Also capable of accepting redirects/appends to the file for logging compiler stuff (configure, make and make install) to a log file instead of losing it on a screen buffer. This gives the user cleaner output, while logging everything in the background, for troubleshooting, analysis, or sending it to me for help.
+# Logging setup. Ganked this entirely from stack overflow. Uses named pipe magic to log all the output of the script to a file. Also capable of accepting redirects/appends to the file for logging compiler stuff (configure, make and make install) to a log file instead of losing it on a screen buffer.
 
 logfile=/var/log/autosnort_install.log
 mkfifo ${logfile}.pipe
@@ -81,7 +82,6 @@ echo "# so rule stub path" >> /root/snort.conf.tmp
 echo "include \$SO_RULE_PATH/so_rules.rules" >> /root/snort.conf.tmp
 }
 
-
 ########################################
 
 ##BEGIN MAIN SCRIPT##
@@ -91,11 +91,11 @@ echo "include \$SO_RULE_PATH/so_rules.rules" >> /root/snort.conf.tmp
 ########################################
 
 print_status "OS Version Check.."
-release=`lsb_release -r|awk '{print $2}'`
-if [[ $release == "12."* || $release == "13."* ]]; then
-	print_good "OS is Ubuntu. Good to go."
+release=`lsb_release -r| awk '{print $2}'`
+if [[ $release == "6."* || $release == "7."* ]]; then
+	print_good "OS is Debian. Good to go."
 else
-    print_notification "This is not Ubuntu 12.x or 13.x, this autosnort script has NOT been tested on other platforms."
+    print_notification "This is not Debian 6.x or 7.x, this autosnort script has NOT been tested on other platforms."
 	print_notification "If you choose to continue, you continue at your own risk!(Please report your successes or failures!)"
     while true; do
 		read -p "Continue? (y/n)" warncheck
@@ -105,30 +105,30 @@ else
 			;;
             [Nn]* ) 
 			print_error "Bailing." 
-			exit 1;;
+			exit 1
+			;;
             * )
 			print_error "Please answer yes or no."
 			;;
         esac
     done
 fi
-
+	
 ########################################
 
 print_status "Checking for root privs.."
-     if [ $(whoami) != "root" ]
-          then
-               print_error "This script must be ran with sudo or root privileges, or this isn't going to work."
-		exit 1
-          else
-               print_good "We are root."
-     fi
+if [ $(whoami) != "root" ]; then
+	print_error "This script must be ran with sudo or root privileges."
+	exit 1
+else
+	print_good "We are root."
+fi
 	 
 ########################################	 
 
 print_status "Checking to ensure sshd is running.."
 
-print_notification "`service ssh status`"
+service ssh status
 
 ########################################
 
@@ -142,6 +142,37 @@ if [ $? -ne 0 ]; then
 else
     print_good "Found wget."
 fi
+
+########################################
+
+# The Debian snort howto recommends that packages.dotdeb.org be added to ensure all the right packages are available.
+# There is a quick check to see if the repo is already in /etc/apt/sources.list and whether or not the gpg key is installed. If it's there, move to the next section. If not, install them both.
+
+print_status "Checking to see if packages.dotdeb.org is already in /etc/apt/sources.list.."
+
+debrelease=`lsb_release -c | awk '{print $2}'`
+grep "packages.dotdeb.org $debrelease all" /etc/apt/sources.list &>> $logfile
+if [ $? -eq 0 ];then
+	apt-key list | grep "dotdeb.org"
+	if [ $? -eq 0 ];then
+		print_good "packages.dotdeb.org is already installed."
+	fi
+else
+	print_status "Adding deb and deb-src for debian $debrelease via http://packages.dotdeb.org to apt sources."
+	echo "" >> /etc/apt/sources.list
+	echo "# the below lines are added via autosnort to ensure a successful snort installation." >> /etc/apt/sources.list
+	echo "deb http://packages.dotdeb.org $debrelease all" >> /etc/apt/sources.list
+	echo "deb-src http://packages.dotdeb.org $debrelease all" >> /etc/apt/sources.list
+	cd /usr/src
+	wget http://www.dotdeb.org/dotdeb.gpg &>> $logfile && cat dotdeb.gpg | apt-key add - &>> $logfile
+	if [ $? -eq 0 ]; then
+		print_good "The repository packages.dogdeb.org, and its gpg key were successfully installed."
+	else
+		print_error "Failed to acquire packages.dotdeb.org gpg key. Check $logfile for details."
+	fi
+fi
+		
+
 
 ########################################
 
@@ -159,9 +190,9 @@ fi
 
 #These packages are required at a minimum to build snort and barnyard + their component libraries
 
-print_status "Installing base packages: ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libmysqlclient-dev"
+print_status "Installing base packages: ethtool build-essential zlib1g-dev libpcap-dev libpcre3-dev bison flex autoconf libtool libmysqlclient-dev.."
 
-declare -a packages=( ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libmysqlclient-dev );
+declare -a packages=( ethtool build-essential zlib1g-dev libpcap-dev libpcre3-dev bison flex autoconf libtool libmysqlclient-dev );
 install_packages ${packages[@]}
 
 ########################################
@@ -169,36 +200,36 @@ install_packages ${packages[@]}
 #This is where the user decides whether or not they want a full stand-alone sensor or a barebones/distributed installation sensor.
 
 while true; do
-	print_notification "Do you plan on installing a web interface to review intrusion events, such as snortreport, aanval or base? (If in doubt, select option 1)"
+	print_notification "Do you plan on installing a web interface to review intrusion events? (If in doubt, select option 1)"
 	read -p "
 1 is yes
 2 is no
 " ui_inst
 	case $ui_inst in
-		1)
-		print_status "Acquiring and installing mysql-server and apache2.."
-		#this is a nice little hack I found in stack exchange to suppress the password prompt for Debian-based systems during the mysql-server install. Afterwards, we run the secure install script that sets the password and does other things to secure the mysql instance. This makes autosnort installs across all platforms more uniform and more secure.
-		export DEBIAN_FRONTEND=noninteractive
-		declare -a packages=( mysql-server apache2 );
-		install_packages ${packages[@]}
-		print_status "Running mysql_secure_installation script.."
-		/usr/bin/mysql_secure_installation
-		if [ $? -ne 0 ]; then
-			print_error "The secure installation script Failed to run. Please check $logfile for details."
-			exit 1	
-		else
-			print_good "Secure installation script completed. Mysql-server and apache2 successfully installed."
-		fi
-		break
-		;;
-		2)
-		print_notification "You've chose to not install a mysql server or apache. This means you will NOT be able to install a web interface on this sensor."
-		break
-		;;
-		*)
-		print_notification "Invalid choice, please enter 1 or 2."
-		continue
-		;;
+	1)
+	print_status "Acquiring and installing mysql-server and apache2.."
+	#this is a nice little hack I found in stack exchange to suppress the password prompt for Debian-based systems during the mysql-server install. Afterwards, we run the secure install script that sets the password and does other things to secure the mysql instance. This makes autosnort installs across all platforms more uniform and more secure.
+	export DEBIAN_FRONTEND=noninteractive
+	declare -a packages=( mysql-server apache2 );
+	install_packages ${packages[@]}
+	print_status "Running mysql_secure_installation script.."
+	/usr/bin/mysql_secure_installation
+	if [ $? -ne 0 ]; then
+		print_error "The secure installation script Failed to run. Please check $logfile for details."
+		exit 1	
+	else
+		print_good "Secure installation script completed. Mysql-server and apache2 successfully installed."
+	fi
+	break
+	;;
+	2)
+	print_notification "You've chose to not install a mysql server or apache. This means you will NOT be able to install a web interface on this sensor."
+	break
+	;;
+	*)
+	print_notification "Invalid choice, please enter 1 or 2."
+	continue
+	;;
 	esac
 done
 
@@ -206,7 +237,8 @@ done
 #This section is a hack I implemented using wget, grep and cut. We pull the downloads page from snort.org and cut out some strings to determine the version of snort and/or daq to pull.
 #After that we pull snort, daq, and libnet them compile them.
 
-print_status "Determining newest versions of snort and daq available on snort.org.."
+print_status "Determining latest versions of snort and daq available on snort.org.."
+
 
 cd /tmp
 wget http://snort.org/snort-downloads -O /tmp/snort-downloads &>> $logfile
@@ -223,6 +255,8 @@ daqver=`echo $daqtar | sed 's/.tar.gz//g'`
 rm /tmp/snort-downloads
 cd /usr/src
 
+print_status "Acquiring $snortver and $daqver from snort.org.."
+
 wget http://snort.org/dl/snort-current/$snorttar -O $snorttar &>> $logfile
 if [ $? -ne 0 ]; then
     print_error "Failed to download $snorttar. Please check $logfile for details."
@@ -230,8 +264,6 @@ if [ $? -ne 0 ]; then
 else
     print_good "Downloaded $snorttar to /usr/src."
 fi
-
-########################################
 
 wget http://snort.org/dl/snort-current/$daqtar -O $daqtar &>> $logfile
 if [ $? -ne 0 ]; then
@@ -249,11 +281,9 @@ if [ $? -ne 0 ]; then
 	exit 1	
 fi
 
-########################################
-
 cd $daqver
 
-print_status "Configuring, making and compiling DAQ. This will take a moment or two."
+print_status "Configuring, making and compiling DAQ. This will take a moment or two.."
 
 ./configure &>> $logfile
 if [ $? -ne 0 ]; then
@@ -273,10 +303,10 @@ if [ $? -ne 0 ]; then
 	exit 1	
 fi
 
-#had issues where /usr/local/lib was not in the default ld library path, causing snort to crash due to a missing library dependency.
+#seen some strange happenings where if this isn't symlinked or in /usr/lib, snort fails to find it and subsequently bails.
 
 if [ ! -h /usr/lib/libsfbpf.so.0 ]; then
-print_status "creating symlink for libsfbpf.so.0 on default ld library path.."
+print_status "Creating symlink for libsfbpf.so.0 on default ld library path.."
 ln -s /usr/local/lib/libsfbpf.so.0 /usr/lib/libsfbpf.so.0
 fi
 
@@ -297,19 +327,15 @@ else
     print_good "Downloaded libdnet 1.12 to /usr/src."
 fi
 
-########################################
-
 tar -xzvf libdnet-1.12.tgz &>> $logfile
 if [ $? -ne 0 ]; then
     print_error "Failed to untar libdnet. Please check $logfile for details."
 	exit 1	
 fi
 
-########################################
-
 cd libdnet-1.12
 
-print_status "Configuring, making, and installing libdnet. This will take a moment or two.."
+print_status "Configuring, making, compiling and linking libdnet. This will take a moment or two.."
 
 ./configure &>> $logfile
 if [ $? -ne 0 ]; then
@@ -329,9 +355,10 @@ if [ $? -ne 0 ]; then
 	exit 1	
 fi
 
-#this is in regards to the fix posted in David Gullett's snort guide - /usr/local/lib isn't include in ld path by default in Ubuntu.
+#this is in regards to the fix posted in David Gullett's snort guide - /usr/local/lib isn't include in ld path by default in Ubuntu. Don't know if this is relevant for Debian, but I'm including it since Ubuntu and Debian are practically the same.
+
 if [ ! -h /usr/lib/libdnet.1 ]; then
-print_status "creating symlink for libdnet on default ld library path.."
+print_status "Creating symlink for libdnet on default ld library path.."
 ln -s /usr/local/lib/libdnet.1.0.1 /usr/lib/libdnet.1
 fi
 
@@ -350,7 +377,7 @@ fi
 
 cd $snortver
 
-print_status "configuring snort (options --prefix=/usr/local/snort and --enable-sourcefire), making and installing. This will take a moment or two."
+print_status "Configuring snort (options --prefix=/usr/local/snort and --enable-sourcefire), making and installing. This will take a moment or two.."
 
 ./configure --prefix=/usr/local/snort --enable-sourcefire &>> $logfile
 if [ $? -ne 0 ]; then
@@ -381,7 +408,7 @@ mkdir /var/snort && mkdir /var/log/snort
 
 print_status "Creating snort user and group, assigning ownership of /var/log/snort to snort user and group."
 
-#users and groups for snort to run non-priveledged. snort's login shell is set to /bin/false to enforce the fact that this is a service account.
+#users and groups for snort to run non-privileged. snort's login shell is set to /bin/false to enforce the fact that this is a service account.
 
 groupadd snort
 useradd -g snort snort -s /bin/false
@@ -413,11 +440,10 @@ while true; do
         print_notification "Do you want to install a rule tarball or use pulled pork?"
         read -p "
 Select 1 if you would like to install a VRT tarball. (Advanced Users)
-Select 2 for pulled pork installation and setup (Most users select this).
+Select 2 for pulled pork installation and setup.
 " rule_install
         case $rule_install in
 			1 )
-            print_status "Chose VRT tarball."
             read -p "Please enter the directory where the rule tarball is located (no trailing slashes!) " rule_dir
             read -p "Please enter the name of the tarball (usually snortrules-snapshot-snortver.tar.gz) " rule_filename
             test -e $rule_dir/$rule_filename
@@ -428,7 +454,7 @@ Select 2 for pulled pork installation and setup (Most users select this).
 						print_notification "The filename you have supplied is not a tarball or could not be read by tar (.tar.gz). Please try again."
 						continue
 					else
-						print_good "untar successful"
+						print_good "Untar successful."
 					fi
                     mkdir /usr/local/snort/lib/snort_dynamicrules
                     if [ $arch = "i686" ]; then
@@ -460,8 +486,8 @@ Select 2 for pulled pork installation and setup (Most users select this).
 			mkdir -p /usr/local/snort/preproc_rules
 			mkdir -p /usr/local/snort/lib/snort_dynamicrules
 			
-			#we use wget to copy the snort-rules page off  snort.org, do a lot of text manipulation from the html file downloaded, and set variables: two variables for attempting to download the VRT example snort.conf from labs.snort.org, and four variables for the version of snort to download rules for via pulledpork.
-			print_status "Checking current rule releases on snort.org."
+			#we wget the snort-rules page off  snort.org, do a lot of text manipulation from the html file downloaded, and set variables: two variables for attempting to downloading the VRT example snort.conf from labs.snort.org, and four variables for the version of snort to download rules for via pulledpork.
+			print_status "Checking current rule releases on snort.org.."
 			
 			wget http://www.snort.org/snort-rules -O /tmp/snort-rules &>> $logfile
 			if [ $? -ne 0 ]; then
@@ -473,15 +499,14 @@ Select 2 for pulled pork installation and setup (Most users select this).
 			choice2conf=`grep snortrules-snapshot-[0-9][0-9][0-9][0-9] /tmp/snort-rules|cut -d"-" -f3 |cut -d"." -f1 | sort -ur | head -2 | tail -1` #snort.conf download attempt 2
 			choice1=`echo $choice1conf |sed -e 's/[[:digit:]]\{3\}/&./'| sed -e 's/[[:digit:]]\{2\}/&./' | sed -e 's/[[:digit:]]/&./'` #pp config choice 1
 			choice2=`echo $choice2conf | sed -e 's/[[:digit:]]\{3\}/&./'| sed -e 's/[[:digit:]]\{2\}/&./' | sed -e 's/[[:digit:]]/&./'` #pp config choice 2
-			choice3=`grep snortrules-snapshot-[0-9][0-9][0-9][0-9] /tmp/snort-rules|cut -d"-" -f3 |cut -d"." -f1 | sort -ru | head -3 | tail -1 | sed -e 's/[[:digit:]]\{3\}/&./'| sed -e 's/[[:digit:]]\{2\}/&./' | sed -e 's/[[:digit:]]/&./'` #pp config choice 3
-			choice4=`grep snortrules-snapshot-[0-9][0-9][0-9][0-9] /tmp/snort-rules|cut -d"-" -f3 |cut -d"." -f1 | sort -ru | head -4| tail -1 | sed -e 's/[[:digit:]]\{3\}/&./'| sed -e 's/[[:digit:]]\{2\}/&./' | sed -e 's/[[:digit:]]/&./'` #pp config choice 4
+			choice3=`cat /tmp/snort-rules  | grep snortrules-snapshot-[0-9][0-9][0-9][0-9]|cut -d"-" -f3 |cut -d"." -f1 | sort -ru | head -3 | tail -1 | sed -e 's/[[:digit:]]\{3\}/&./'| sed -e 's/[[:digit:]]\{2\}/&./' | sed -e 's/[[:digit:]]/&./'`
+			choice4=`cat /tmp/snort-rules  | grep snortrules-snapshot-[0-9][0-9][0-9][0-9]|cut -d"-" -f3 |cut -d"." -f1 | sort -ru | head -4| tail -1 | sed -e 's/[[:digit:]]\{3\}/&./'| sed -e 's/[[:digit:]]\{2\}/&./' | sed -e 's/[[:digit:]]/&./'`
 			
 			print_status "Attempting to acquire snort.conf from VRT labs for the version of snort installed.."
 			
 			wget http://labs.snort.org/snort/$choice1conf/snort.conf -O /usr/local/snort/etc/snort.conf &>> $logfile
-
 			if [ $? != 0 ];then
-				print_error "Attempt to download a $choice1 snort.conf from labs.snort.org failed. attempting to download snort.conf for $choice2"
+				print_error "Attempt to download a $choice1 snort.conf from labs.snort.org failed. attempting to download snort.conf for $choice2.."
 				wget http://labs.snort.org/snort/$choice2conf/snort.conf -O /usr/local/snort/etc/snort.conf &>> $logfile
 				if [ $? != 0 ];then
 					print_error "This attempt to download a snort.conf has failed as well. Aborting pulledpork rule installation.Check $logfile for details."
@@ -499,14 +524,13 @@ Select 2 for pulled pork installation and setup (Most users select this).
 			
 			print_status "Acquiring packages for pulled pork.."
 			
-			declare -a packages=( perl libarchive-tar-perl libcrypt-ssleay-perl liblwp-protocol-https-perl );
+			declare -a packages=( perl libarchive-tar-perl libcrypt-ssleay-perl libwww-perl );
 			install_packages ${packages[@]}
 			
 			print_status "Acquiring Pulled Pork.."
 			
             wget http://pulledpork.googlecode.com/files/pulledpork-0.7.0.tar.gz -O pulledpork-0.7.0.tar.gz &>> $logfile
-            
-			if [ $? -ne 0 ]; then
+            if [ $? -ne 0 ]; then
 				print_error "Failed to acquire pulledpork. Please check $logfile for details."
 				continue	
 			fi
@@ -517,12 +541,11 @@ Select 2 for pulled pork installation and setup (Most users select this).
 				continue	
 			fi
 			
-			print_good "Pulledpork successfully installed to /usr/src"
+			print_good "Pulledpork successfully installed to /usr/src."
             
 			cd pulledpork-*/etc
 			
 			#Create a copy of the original conf file (in case the user needs it), ask the user for an oink code, then fill out a really stripped down pulledpork.conf file with only the lines needed to run the perl script
-			#added sid_msg_version, changed the rule urls, and added in black_list.rules pull down from VRT labs.
 			
 			cp pulledpork.conf pulledpork.conf.orig
 			
@@ -544,13 +567,11 @@ Select 2 for pulled pork installation and setup (Most users select this).
 			echo "black_list=/usr/local/snort/rules/black_list.rules" >>pulledpork.tmp
 			echo "IPRVersion=/usr/local/snort/rules/iplists" >>pulledpork.tmp
 			echo "sostub_path=/usr/local/snort/so_rules/so_rules.rules" >> pulledpork.tmp
-			echo "distro=Ubuntu-12-04" >> pulledpork.tmp
+			echo "distro=Debian-6-0" >> pulledpork.tmp
 			echo "ips_policy=security" >> pulledpork.tmp
 			echo "version=0.7.0" >> pulledpork.tmp
 			cp pulledpork.tmp pulledpork.conf
-			
 
-			
 #the actual PP routine: give them a choice to try and download rules for the four most recent versions of snort. run PP twice for each case statement - the first time downloads the rules to /tmp so we can copy configuration files to /usr/local/snort/etc. The second time actually processes the rules. If the user cannot download the snort rules tarball for the most recent snort release (no VRT subscription), and has to download rules for any previous version of snort, pulledpork is configured to process text rules only; this is to ensure SO rule compatibility problems don't occur and break snort entirely.			
 			
 			print_notification "Since this script can't tell how many days it has been since snort $choice1 has been released, and I don't want to waste 15 minutes of your time, what version of snort do want to download rules for?"
@@ -667,7 +688,7 @@ print_good "snort.conf configured. location: /usr/local/snort/etc/snort.conf"
 
 #now we have to download barnyard 2 and configure all of its stuff.
 
-print_status "Downloading, making and compiling barnyard2.."
+print_status "downloading, making and compiling barnyard2.."
 
 cd /usr/src
 
@@ -675,6 +696,8 @@ wget https://github.com/firnsy/barnyard2/archive/master.tar.gz -O barnyard2.tar.
 if [ $? -ne 0 ]; then
     print_error "Failed to download barnyard2 from github.com. Please see $logfile for details."
 	exit 1	
+else
+    print_good "Downloaded barnyard2 to /usr/src."
 fi
 
 ########################################
@@ -697,8 +720,10 @@ if [ $? -ne 0 ]; then
 	exit 1	
 fi
 
-#New work-around to find libmysqlclient.so : Debian 6 and Debian 7 store it in different places, and so far as I can tell so do Ubuntu 12.xx and 13.xx
-
+#New work-around to find libmysqlclient.so : Debian 6 and Debian 7 store it in different places:
+#/usr/lib/i386-linux-gnu (deb 7, 32-bit)
+#/usr/lib/x86_64-linux-gnu (deb 7, 64)
+#/usr/lib (deb 6, 32/64 bit)
 #we know the root directory is /usr/lib, so we run find, record where libmysqlclient.so is, then use 'dirname' to point the script at the right directory.
 #found out the hard way that if you point --with-mysql-libraries directly at the .so file, it doesn't work; it's expecting a directory, NOT a file.
 
@@ -771,7 +796,7 @@ if [ $ui_inst = 1 ]; then
 			echo "output database: log,mysql, user=snort password=$MYSQL_PASS_1 dbname=snort host=localhost" >> /root/barnyard2.conf.tmp
 			break
 		else
-			print_error "Passwords do not match. Please try again."
+			print_notification -e "Passwords do not match. Please try again."
 			continue
 		fi
 	done
@@ -854,7 +879,7 @@ else
 			break
 			;;
 			*)
-			print_error "Invalid choice, please try again."
+			print_notification "Invalid choice, please try again."
 			continue
 			;;
 		esac
@@ -928,7 +953,7 @@ Selecting 2 does nothing and lets you configure things on your own.
 		break
         ;;
         * )
-		print_error "Invalid choice. Please try again."
+		print_notification "I didn't understand your answer. Please try again."
 		continue
         ;;
 	esac
@@ -947,7 +972,7 @@ Select 2 If you do not have an interface to dedicate to sniffing traffic only or
 # If a user makes a choice that they want snort to run on bootup, but do not configure the snort interface to be up on system startup
 	case $startup_choice in
 		1 )
-		print_status "adding snort and barnyard2 to rc.local.."
+		print_status "adding snort and barnyard2 to rc.local"
 		cp /etc/rc.local /root/rc.local.tmp
 		if [ $boot_iface = "1" ]; then
 			echo "#start snort as user/group snort, Daemonize it, read snort.conf and run against $snort_iface" >> /root/rc.local.tmp
@@ -967,27 +992,28 @@ Select 2 If you do not have an interface to dedicate to sniffing traffic only or
 		break
 			;;
 		* )
-		print_error "Invalid choice. Please try again."
+		print_notification "Invalid choice. Please try again."
 		;;
 	esac
 done
 
 #Perform the interface installation step here. first, we drop back to the initial working directory where autosnort was ran from.
 while true; do
-	print_notification "Please select an output interface to install:"
+	print_good "Please select an output interface to install:"
 	print_notification "1. Snort Report"
 	print_notification "2. Aanval"
 	print_notification "3. BASE"
 	print_notification "4. Rsyslog"
 	print_notification "5. Snorby"
-	print_notification "6. no web interface or output method will be installed (Select this if you configured barnyard2 to log to a remote database or need no output interface at this time)"
+	print_notification "6. no web interface or output method will be installed (Select this if you configured barnyard2 to log to a remote database, or need no output interface at this time)"
 	read -p "Please choose an option: " ui_choice
 	case $ui_choice in
 		1)
 		print_status "Installing Snort Report.."
-		bash snortreport-ubuntu.sh
+		bash snortreport-debian.sh
 		if [ $? != 0 ]; then
-			print_error "Please review the installation log and try again."
+			print_error "It looks like the installation did not go as according to plan."
+			echo "Verify you have network connectivity and try again"
 			continue
 		else
 			print_good "Snort Report installation successful."
@@ -997,9 +1023,10 @@ while true; do
 		;;
 		2)
 		print_status "Installing Aanval.."
-		bash aanval-ubuntu.sh
+		bash aanval-debian.sh
 		if [ $? != 0 ]; then
-			print_error "Please review the installation log and try again."
+			print_error "It looks like the installation did not go as according to plan."
+			echo "Verify you have network connectivity and try again"
 			continue
 		else
 			print_good "Aanval installation successful."
@@ -1021,9 +1048,10 @@ while true; do
 		;;
 		3)
 		print_status "Installing BASE.."
-		bash base-ubuntu.sh
+		bash base-debian.sh
 		if [ $? != 0 ]; then
-			print_error "Please review the installation log and try again."
+			print_error "It looks like the installation did not go as according to plan."
+			echo "Verify you have network connectivity and try again"
 			continue
 		else
 			print_good "BASE installation successful."
@@ -1041,22 +1069,24 @@ while true; do
 		;;
 		4)
 		echo "Configuring rsyslog output.."
-		bash syslog_full-ubuntu.sh
+		bash syslog_full-debian.sh
 		if [ $? != 0 ]; then
-			print_error "Please review the installation log and try again."
+			print_error "It looks like the installation did not go as according to plan."
+			print_notification "Please try again"
 			continue
 		else
 			print_good "Rsyslog output successfully configured."
 			print_notification "Please ensure 514/udp outbound is open on THIS sensor."
-			print_notification "Ensure 514/udp inbound is open on your syslog server/SIEM and is ready to recieve events."
+			print_notification "Ensure 514/udp inbound is open on your syslog server/SIEM and is ready to receive events."
 			break
 		fi
 		;;
 		5)
 		print_status "Installing Snorby.."
-		bash snorby-ubuntu.sh
+		bash snorby-debian.sh
 		if [ $? != 0 ]; then
-			print_error "Please review the installation log and try again."
+			print_error "It looks like the installation did not go as according to plan."
+			echo "Please try again"
 			continue
 		else
 			print_good "Snorby successfully installed."
@@ -1069,12 +1099,12 @@ while true; do
 		fi
 		;;
 		6)
-		print_notification "You have chosen to not install any interface (Web or syslog)"
+		print_notification "You have chosen to not install any interface (Web or syslog)."
 		print_notification "Either you plan on using snort for research/rule writing purposes.. or Have a remote database/C2 system you will be reporting events to."
 		break
 		;;
 		*)
-		print_error "invalid choice. please try again."
+		print_notification "invalid choice. please try again."
 		continue
 		;;
 	esac
@@ -1084,28 +1114,22 @@ done
 
 print_notification "If you chose to install a web interface, and have a firewall enabled on this system, make sure port 80 on your INBOUND chain is allowed in order to be able to browse to your web interface."
 print_notification "One last choice. A reboot is recommended, considering all the configuration files we've messed with and updates that have been applied to the system." 
+print_notification "Do you want to reboot now or later? Again, 1 is yes, 2 is no."
 
-while true; do
-	print_notification "Do you want to reboot now? 1 is yes, 2 is no."
-	read reboot_choice
+read reboot_choice
 
-	case $reboot_choice in
-		1)
-			print_status "Rebooting now."
-			init 6
-			break
-			;;
-		2)
-			print_notification "Do not reboot selected. I would highly recommend that you reboot this system before putting it into production."
-			break
-			;;
-		*)
-			print_error "Not a valid choice. Please try again."
-			continue
-			;;
-	esac
-done
-
+case $reboot_choice in
+	1)
+		print_status "Rebooting now.."
+		init 6
+		;;
+	2)
+		print_notification "Okay, I'd recommend going down for reboot before putting this thing in production, however."
+		;;
+	*)
+		print_notification "I didn't understand your choice, so I'm going to assume you're not ready to reboot the system. when you are, just run the reboot or init 6 command (prepended by sudo if you're not running as root) and you're done here."
+		;;
+esac
 print_notification "The log file for autosnort is located at: $logfile" 
 print_good "We're all done here. Have a nice day."
 

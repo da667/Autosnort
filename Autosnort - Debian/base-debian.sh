@@ -12,7 +12,7 @@ exec &> ${base_logfile}.pipe
 rm ${base_logfile}.pipe
 
 ########################################
-#Metasploit-like print statements: status, good, bad and notification. Gratouitiously copied from Darkoperator's metasploit install script.
+#Metasploit-like print statements: status, good, bad and notification. Gratuitously copied from Darkoperator's metasploit install script.
 
 function print_status ()
 {
@@ -106,7 +106,7 @@ rm base-1.4.5.tar.gz
 mv base-* base
 
 print_status "Resetting default site DocumentRoot to /var/www/base."
-sed -i 's/DocumentRoot \/var\/www/DocumentRoot \/var\/www\/base/' /etc/apache2/sites-available/default
+sed -i 's/DocumentRoot \/var\/www/DocumentRoot \/var\/www\/base/' /etc/apache2/sites-available/*default*
 
 #BASE requires the /var/www/ directory to be owned by www-data
 print_status "Granting ownership of /var/www to www-data user and group."

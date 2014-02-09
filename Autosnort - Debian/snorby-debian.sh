@@ -38,7 +38,7 @@ function print_notification ()
 
 #This entire first block is to: Grab pre-reqs for Snorby, rvm (to install and automatically fix dependencies for ruby), install all the gems needed for snorby, then pull down snorby via github.
 
-print_status "Acquiring packages for snorby (this may take a little while)"
+print_status "Acquiring packages for snorby (this may take a little while).."
 
 apt-get install -y libyaml-dev git-core wkhtmltopdf libssl-dev libxslt1-dev libsqlite3-dev libmysql++-dev libcurl4-openssl-dev apache2-prefork-dev default-jre-headless curl sudo &>> $snorby_logfile
 if [ $? -eq 0 ]; then
@@ -49,9 +49,15 @@ else
 fi
 
 
-print_status "Acquiring RVM."
+print_status "Acquiring RVM.."
 
-\curl -k -\#L https://get.rvm.io | sudo bash -s stable &>> $snorby_logfile
+wget https://get.rvm.io -O rvm_stable.sh &>> $snorby_logfile
+if [ $? -eq 1 ]; then
+	print_error "Failed to acquire rvm installation script. Please see $snorby_logfile for details."
+	exit 1
+fi
+
+bash rvm_stable.sh &>> $snorby_logfile
 if [ $? -eq 0 ]; then
 	print_good "RVM installed successfully."
 else
@@ -76,10 +82,10 @@ fi
 
 ########################################
 
-print_status "doing some shell magic to pick out the latest ruby 1.9.X version."
+print_status "doing some shell magic to pick out the latest ruby 1.9.X version.."
 
-rubyver=`cat /tmp/downloads.html | grep -e "ruby-1" | head -2 | tail -1 | cut -d"-" -f3,4 | cut -d"." -f1,2,3`
-print_status "installing ruby-$rubyver (this will take a little while)"
+rubyver=`grep -e "ruby-1" /tmp/downloads.html | head -2 | tail -1 | cut -d"-" -f3,4 | cut -d"." -f1,2,3`
+print_status "installing ruby-$rubyver (this will take a little while).."
 rvm install ruby-$rubyver &>> $snorby_logfile
 if [ $? -ne 0 ]; then
 	print_error "Failed to install ruby-$rubyver. Please see $snorby_logfile for more details."
@@ -90,7 +96,7 @@ fi
 
 ########################################
 
-print_status "Installing gems required for snorby."
+print_status "Installing gems required for snorby.."
 
 gem install thor i18n bundler tzinfo builder memcache-client rack rack-test rack-mount rails rake rubygems-update erubis mail text-format sqlite3 daemon_controller passenger &>> $snorby_logfile
 
@@ -102,7 +108,7 @@ update_rubygems &>> $snorby_logfile
 
 cd /var/www/
 
-print_status "Grabbing snorby via github."
+print_status "Grabbing snorby via github.."
 
 git clone https://github.com/Snorby/snorby.git &>> $snorby_logfile
 if [ $? -ne 0 ]; then
@@ -115,9 +121,9 @@ fi
 ########################################
 
 #Now that we pulled down snorby, we have to modify the configuration files. sed is used to point snorby to the proper path for wkhtmltopdf, and we have the user enter the root mysql user's creds to have snorby create the snorby database.
-#TODO: at the end of the script give the snort database user rights to manage the snorby database; database.yml is world readable by default. I don't like the idea of having root database creds world-readable.
 
-print_status "Configuring Snorby and pointing it to the mysql database."
+
+print_status "Configuring Snorby and pointing it to the mysql database.."
 
 cd /var/www/snorby/config
 
@@ -144,7 +150,7 @@ while true; do
 	fi
 done
 
-print_good "Snorby successfully configured"
+print_good "Snorby successfully configured."
 
 ########################################
 
@@ -175,21 +181,21 @@ print_good "Apache successfully configured to use passenger."
 
 ########################################
 
-#add to sites-avaiable/snorby, disable default site. wonder if maybe I should try doing this for the other web interfaces?
+#add to sites-avaiable/snorby.conf
 
-print_status "Configuring apache to point to snorby's DocumentRoot as the default site."
+print_status "Configuring apache to point to snorby's DocumentRoot as the default site.."
 
-echo "<VirtualHost *:80>" >> /etc/apache2/sites-available/snorby
-echo "     ServerName snorby.localhost" >> /etc/apache2/sites-available/snorby
-echo "     # !!! Be sure to point DocumentRoot to 'public'!" >> /etc/apache2/sites-available/snorby
-echo "     DocumentRoot /var/www/snorby/public" >> /etc/apache2/sites-available/snorby
-echo "     <Directory /var/www/snorby/public>" >> /etc/apache2/sites-available/snorby
-echo "          # This relaxes Apache security settings." >> /etc/apache2/sites-available/snorby
-echo "          AllowOverride all" >> /etc/apache2/sites-available/snorby
-echo "          # MultiViews must be turned off." >> /etc/apache2/sites-available/snorby
-echo "          Options -MultiViews" >> /etc/apache2/sites-available/snorby
-echo "     </Directory>" >> /etc/apache2/sites-available/snorby
-echo "</VirtualHost>" >> /etc/apache2/sites-available/snorby
+echo "<VirtualHost *:80>" >> /etc/apache2/sites-available/snorby.conf
+echo "     ServerName snorby.localhost" >> /etc/apache2/sites-available/snorby.conf
+echo "     # !!! Be sure to point DocumentRoot to 'public'!" >> /etc/apache2/sites-available/snorby.conf
+echo "     DocumentRoot /var/www/snorby/public" >> /etc/apache2/sites-available/snorby.conf
+echo "     <Directory /var/www/snorby/public>" >> /etc/apache2/sites-available/snorby.conf
+echo "          # This relaxes Apache security settings." >> /etc/apache2/sites-available/snorby.conf
+echo "          AllowOverride all" >> /etc/apache2/sites-available/snorby.conf
+echo "          # MultiViews must be turned off." >> /etc/apache2/sites-available/snorby.conf
+echo "          Options -MultiViews" >> /etc/apache2/sites-available/snorby.conf
+echo "     </Directory>" >> /etc/apache2/sites-available/snorby.conf
+echo "</VirtualHost>" >> /etc/apache2/sites-available/snorby.conf
 
 print_good "Snorby's DocumentRoot set as the default site."
 
@@ -197,27 +203,37 @@ print_good "Snorby's DocumentRoot set as the default site."
 
 #The below portion are the final steps. The first thing we do is make a copy of the Gemfile.lock, and using grep -v, remove all references to psych_shield in the Gemfile.lock file. Reason for this is that bundler will bomb out because it sees an inconsistency with the Gemfile.lock and Gemfile. Grepping out psych_shield fixes that.
 
-#The rest is to perform the final installation steps for snorby use bundler to grab the remaining gems needed and configure everything, then rake to make it run. The a2dis/ensite are to disable the default apache site and enable snorby, setting it as the default site.
-#TODO:https
-
-print_status "Running bundler."
+print_status "Running bundler (1 of 2).."
 
 cd /var/www/snorby
 
 #Ran into issues with psych_shield causing bundler to bail out."
 
 cp Gemfile.lock Gemfile.lock.bak
-cat Gemfile.lock.bak | grep -v psych_shield > Gemfile.lock
+grep -v "psych_shield" Gemfile.lock.bak > Gemfile.lock
 
-bundle install --deployment &>> $snorby_logfile
+#Running bundle install with --no-deployment option. Direct result of issue #323 on snorby github. This was the work-around that I found to work. Afterwards, we re-run bundle with --deployment, and everything _appears_ to work. Did I mention how much I don't understand and hate ruby on rails?
+
+bundle install --no-deployment &>> $snorby_logfile
 if [ $? -ne 0 ]; then
-	print_error "Bundler failed to run. Please see $snorby_logfile for more details."
+	print_error "Bundler (1 of 2) failed to run. Please see $snorby_logfile for more details."
 	exit 1
 else
-	print_good "Bundler completed."
+	print_good "Bundler (1 of 2) completed."
 fi
 
-print_status "Running rake"
+print_status "Running bundler (2 of 2).."
+bundle install --deployment &>> $snorby_logfile
+if [ $? -ne 0 ]; then
+	print_error "Bundler (2 of 2) failed to run. Please see $snorby_logfile for more details."
+	exit 1
+else
+	print_good "Bundler (2 of 2) completed."
+fi
+
+#TODO:`which pdfkit` --install-wkhtmltopdf 
+
+print_status "Running rake.."
 
 rake snorby:setup &>> $snorby_logfile
 if [ $? -ne 0 ]; then
@@ -229,9 +245,9 @@ fi
 
 ########################################
 
-#The commands below are to drop priveleges: We want to have the snort user manage the snorby database. This is done for security purposes. I'm not comfortable with the root database user's creds being in a world-readable file.
+#The commands below are to drop privileges: We want to have the snort user manage the snorby database. This is done for security purposes. I'm not comfortable with the root database user's creds being in a world-readable file.
 
-print_status "Giving permission to snort database user to manage the snorby database (dropping privs)"
+print_status "Giving permission to snort database user to manage the snorby database (dropping privs).."
 
 mysql -uroot -p$root_pass_1 -e "grant create, insert, select, delete, update on snorby.* to snort@localhost identified by '$MYSQL_PASS_1';" &>> $snorby_logfile
 
@@ -247,7 +263,15 @@ print_status "Giving ownership of /var/www/snorby to www-data user and group."
 
 chown -R www-data:www-data /var/www/snorby/
 
-a2dissite default &>> $snorby_logfile
+#These files are world readable by default when they really don't need to be.
+
+print_status "Resetting permissions on database.yml and snorby_config.yml.."
+
+chmod 400 /var/www/snorby/config/database.yml /var/www/snorby/config/snorby_config.yml
+
+#Moving away from using a2ensite and a2dissite. Also future-proofing the script for Apache 2.4+
+
+rm /etc/apache2/sites-enabled/*default*
 if [ $? -ne 0 ]; then
 	print_error "Failed to disable default site. Please see $snorby_logfile for more details."
 	exit 1
@@ -255,15 +279,15 @@ else
 	print_good "Default site disabled."
 fi
 
-a2ensite snorby &>> $snorby_logfile
+ln -s /etc/apache2/sites-available/snorby.conf /etc/apache2/sites-enabled/snorby.conf
 if [ $? -ne 0 ]; then
 	print_error "Failed to enable Snorby site. Please see $snorby_logfile for more details."
 	exit 1
 else
-	print_good "Snorby site enabled and set to default. Please see $snorby_logfile for more details."
+	print_good "Snorby site enabled and set to default."
 fi
 
-service apache2 reload &>> $snorby_logfile
+service apache2 restart &>> $snorby_logfile
 if [ $? -ne 0 ]; then
 	print_error "Failed to restart Apache. Please see $snorby_logfile for more details."
 	exit 1
@@ -271,12 +295,7 @@ else
 	print_good "Apache successfully restarted."
 fi
 
-print_notification "The log file for this interface installation is located at: $snorby_logfile"
-
-#echo "cd /var/www/snorby && ruby script/delayed_job start" >> /etc/rc.local
-#echo "cd /var/www/snorby && rails runner 'Snorby::Jobs::SensorCacheJob.new(false).perform; Snorby::Jobs::DailyCacheJob.new(false).perform'" >> /etc/rc.local
-
-#the above entries to rc.local don't actually work on boot, but if the root user actually runs those commands, it  does work... so I'm disabling the commands until a reliable method to start the delayed_job and run the cache jobs on boot is discovered.
+print_notification "The log file for the snorby installation is located at: $snorby_logfile"
 
 #SSL config:
 #a2enmod ssl

@@ -23,7 +23,61 @@ cd /root;sudo bash autosnort-debian-mm-dd-yyyy.sh
 autosnort-Debian Release Notes
 ##############################
 
-Current Release: autosnort-debian-08-18-2013.sh
+Current Release: autosnort-debian-02-08-2014.sh
+
+Release Notes:
+
+-It's Debian's turn to get some much-needed love and attention.
+
+-autosnort-debian script changes:
+--Removed libpcap-ruby as a core package requirement. It isn't really needed.
+--A feature request by an individual for Autosnort CentOS prompted me to code in a check to see if the dotdeb.org repository already exists in /etc/apt/sources.list and the apt-key list. Basically, if it's already there, the script skips installing/configuring it.
+--Removed all instances of catting and piping to grep. Grep is capable of reading from files directly. Results in a slight efficiency increase
+--Lots of minor changes to formatting and output given to the user to make things a little more user-friendly.
+--Upgraded to use pullpork 0.7.0
+--- In addition to download the standard VRT rule release, pulledpork now downloads the Snort community rules, and the ip blacklist from the VRT labs site
+--- pulledpork now generates sid-msg.map version 2 output
+--Efficiency enhancement: The entire pulledpork routine only runs pulledpork once, making the rule setup phase significantly faster.
+
+-snorby-debian script changes:
+--Lots of minor formatting changes
+--Removed all instances of catting and piping to grep. Grep files directly now.
+--the rvm (Ruby Version Manager) tool download and installation is now torn down a bit more cleanly.
+--Changed permissions of database.yml and snorby_config.yml to be readable only by the www-data user (chmod 400). Everything still works just fine.
+--Stopped using a2ensite and a2dissite. Debian doesn't use Apache 2.4 yet, which seems to be very pickly about only allowing users to use a2ensite and a2dissite on files ending in ".conf", but I've seen in it Ubuntu, and I'm nipping this in the bud now. Renamed the /etc/apache2/sites-available/snorby file to snorby.conf, and now handle manually creation/removal of symlinks to sites-available. This is to ensure compatibility between older versions of Apache and newer versions (2.4+)
+
+snortreport-debian script changes:
+--Very minor formatting changes
+--Snort Report version upgraded to 1.3.4 from 1.3.3
+--No more short open tags. the snortreport-debian script now removes every single last PHP short open tag without breaking anything else.
+--Ensured compatibility with new and old versions of Apache by making a very minor change the sed line that modifies DocumentRoot
+--Upgraded jpgraph version to 3.05.
+--The script now changes ownership for jpgraph and snortreport directories to be owned by www-data user and group (recursively)
+--Changed file permissions on srconf.php. This file is now only readable by the www-data user. Everything still works just fine.
+
+-syslog_full-debian script changes:
+--Minor formatting changes.
+--Removed all "cat" commands for slightly more efficient shell script.
+
+BASE-ubuntu and Aanval-ubtu script changes
+--Very minor formatting changes
+--Ensured compatibility with new and old versions of Apache by making a very minor change the sed line that modifies DocumentRoot
+
+
+Bug Fixes:
+-autosnort-debian:
+--Significantly improved the OS version check at the start of the script.
+
+snorby-debian:
+--The script show now properly download the latest ruby 1.9.x release, like it used to (fixes autosnort issue 19)
+--Clone of snorby from github is now https only (Pre-cursor to fixing issue 19 on CentOS)
+--Resolved autosnort issue 20 (snorby issue 323) via work-around that involves running bundler --no-deployment, followed by running bundler again with --deployment. It now takes bundler twice as long to perform its installation, but for now, this is the only viable work-around I've found until Mephux/Snorby team closes out this issue.
+
+##################
+Previous Releases
+##################
+
+autosnort-debian-08-18-2013.sh
 
 Release Notes:
 
@@ -34,10 +88,6 @@ Bug Fixes:
 
 - Apparently at some point between now and june, the passenger output directory for the mod_passenger.so binary changed the name of the directory from "libout" to "buildout". sigh. consistency is awesome, don't you agree? I only discovered this during testing passenger during the centOS testing process. 
 - Same as the centOS script, found minor grammatical and syntactical errors littered all over the script. Found and fixed what I could.
-
-##################
-Previous Releases
-##################
 
 autosnort-debian-06-15-2013
 
