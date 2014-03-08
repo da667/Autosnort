@@ -37,7 +37,7 @@ function print_notification ()
 ########################################
 #grab packages for BASE. Most of the other required packages are pulled by the main AS script.
 
-print_status "Grabbing packages required for BASE."
+print_status "Grabbing packages required for BASE.."
 
 yum -y install php php-common php-gd php-cli php-mysql php-pear.noarch php-adodb.noarch perl-libwww-perl openssl-devel mod_ssl &>> $base_logfile
 if [ $? != 0 ];then
@@ -51,7 +51,7 @@ fi
 
 #These are php-pear config commands Seen in the 2.9.4.0 install guide for Debian.
 
-print_status "Configuring php via php-pear."
+print_status "Configuring php via php-pear.."
 
 pear config-set preferred_state alpha &>> $base_logfile
 pear channel-update pear.php.net &>> $base_logfile
@@ -65,14 +65,14 @@ fi
 
 #Have to adjust PHP logging otherwise BASE will barf on startup.
 
-print_status "Reconfiguring php error reporting for BASE."
+print_status "Reconfiguring php error reporting for BASE.."
 sed -i 's#error_reporting \= E_ALL \& ~E_DEPRECATED#error_reporting \= E_ALL \& ~E_NOTICE#' /etc/php.ini
 
 ########################################
 
 #Move to DocumentRoot, grab base, untar it and rename the directory to just 'base' for simplicity sake.
 
-print_status "Installing BASE."
+print_status "Installing BASE.."
 
 cd /var/www/html
 
@@ -80,7 +80,7 @@ cd /var/www/html
 # A check is built into the main script to verify this script exits cleanly. If it doesn't,
 # The user should be informed and brought back to the main interface selection menu.
 
-print_status "Grabbing BASE via Sourceforge."
+print_status "Grabbing BASE via Sourceforge.."
 
 wget http://sourceforge.net/projects/secureideas/files/BASE/base-1.4.5/base-1.4.5.tar.gz -O base-1.4.5.tar.gz &>> $base_logfile
  
@@ -118,10 +118,10 @@ sed -i 's#/var/www/html#/var/www/html/base#g' /etc/httpd/conf/httpd.conf &>> $ba
 
 
 #BASE requires the /var/www/html directory to be owned by apache
-print_status "Granting ownership of /var/www/html/base recursively to apache user and group."
+print_status "Granting ownership of /var/www/html/base recursively to apache user and group.."
 chown -R apache:apache base/ &>> $base_logfile
 
-print_status "Configuring SELinux permissions for the httpd_sys_rw_content_t context recursively under /var/www/html/base."
+print_status "Configuring SELinux permissions for the httpd_sys_rw_content_t context recursively under /var/www/html/base.."
 chcon -R -t httpd_sys_rw_content_t base/ &>> $base_logfile
 
 print_notification "The log file for this interface installation is located at: $base_logfile"

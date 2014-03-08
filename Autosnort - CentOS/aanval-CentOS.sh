@@ -32,7 +32,7 @@ function print_notification ()
 
 ########################################
 
-print_status "Grabbing packages for aanval."
+print_status "Grabbing packages for aanval.."
 yum -y install php php-common php-gd php-cli php-mysql byacc libxslt-devel php-pear.noarch php-adodb.noarch perl-Crypt-SSLeay perl-libwww-perl perl-Archive-Tar perl-IO-Socket-SSL openssl-devel mod_ssl &>> $aanval_logfile
 if [ $? != 0 ];then
 	print_error "Failed to acquire required packages for Aanval. See $aanval_logfile for details."
@@ -43,9 +43,7 @@ fi
 
 ########################################
 
-print_status "making the aanval web UI directory"
-
-#Make the aanval directory under /var/www/html, and cd into it
+#Make the aanval directory under /var/www, and cd into it
 mkdir /var/www/html/aanval
 cd /var/www/html/aanval
 
@@ -61,7 +59,7 @@ else
 	print_good "Successfully downloaded Aanval."
 fi
 
-print_status "Installing Aanval."
+print_status "Installing Aanval.."
 
 tar -xzvf aanval.tar.gz &>> $aanval_logfile
 if [ $? != 0 ];then
@@ -91,10 +89,6 @@ while true; do
 	fi
 done
 
-#note: need to pass off mysql_pass_1 as an environment variable in the main script:
-#code: ask for snort database password, save to var MYSQL_PASS_1 (yes, case matters)
-#export MYSQL_PASS_1, call it in child shell script for aanval. ($MYSQL_PASS_1)
-
 while true; do
 	print_notification "you'll need to enter the mysql root user password one more time to grant the snort database user permissions to the aanvaldb database."
 	mysql -u root -p -e "grant create, insert, select, delete, update on aanvaldb.* to snort@localhost identified by '$MYSQL_PASS_1';" &>> $aanval_logfile
@@ -109,15 +103,15 @@ done
 
 ########################################
 
-print_status "Granting ownership of /var/www/html/aanval to apache."
+print_status "Granting ownership of /var/www/html/aanval to apache.."
 
 chown -R apache:apache /var/www/html/aanval
 
 cp /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.orig
-print_status "Resetting default site DocumentRoot and Directory Permissions to /var/www/html/aanval."
+print_status "Resetting default site DocumentRoot and Directory Permissions to /var/www/html/aanval.."
 sed -i 's#/var/www/html#/var/www/html/aanval#g' /etc/httpd/conf/httpd.conf &>> $aanval_logfile
 
-print_status "Configuring SELinux permissions for Aanval."
+print_status "Configuring SELinux permissions for Aanval.."
 print_notification "Setsebool takes a moment or two to do its thing. Please be patient, I promise the script isn't hanging."
 #discovered during testing that this HAD to be set for aanval to be able to talk to the mysql database.
 setsebool -P httpd_can_network_connect_db 1
@@ -127,7 +121,7 @@ chcon -R -t httpd_sys_rw_content_t aanval/
 
 print_good "SELinux permissions successfully modified."
 
-print_status "Starting background processors for Aanval web interface."
+print_status "Starting background processors for Aanval web interface.."
 cd /var/www/html/aanval/apps
 perl idsBackground.pl -start &>> $aanval_logfile
 if [ $? != 0 ];then
@@ -148,7 +142,7 @@ while true; do
 	" bgpstart
 	case $bgpstart in
 		1)
-		print_status "Adding job to start background processors on boot to /etc/rc.local."
+		print_status "Adding job to start background processors on boot to /etc/rc.local.."
 		echo "cd /var/www/html/aanval/apps" >> /etc/rc.local
 		echo "perl idsBackground.pl -start" >> /etc/rc.local
 		print_good "Successfully added background processors to rc.local."

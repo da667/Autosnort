@@ -29,10 +29,10 @@ function print_notification ()
 
 #We take the copy barnyard2.conf and use grep -v to disable mysql by removing that line. We then ask the user what name the want the sensor appear as, and the ip address of the syslog server.
 
-print_status "Reconfiguring barnyard2.conf output plugin to syslog_full."
+print_status "Reconfiguring barnyard2.conf output plugin to syslog_full.."
 
 cat /usr/local/snort/etc/barnyard2.conf | grep -v mysql > /root/barnyard2.conf.tmp
-sensor_iface=`cat /root/barnyard2.conf.tmp | grep interface | cut -d" " -f3`
+sensor_iface=`grep interface /root/barnyard2.conf.tmp | cut -d" " -f3`
 
 read -p "What would you like the sensor's name to appear as?" sensor_name
 read -p "What is the ip address of the syslog server? (in x.x.x.x format; e.g. 192.168.1.254)" syslog_server

@@ -22,9 +22,61 @@ cd /root;sudo bash autosnort-centOS-mm-dd-yyyy.sh
 ###############################
 autosnort-centOS Release Notes
 ###############################
-Current Release: autosnort-centOS-08-18-2013.sh
+Current Release: autosnort-centOS-03-07-14.sh
+
+It's finally time for CentOS autosnort and the module shell scripts to get a facelift. To all of my faithful users, my apologies for having taken so long.
 
 Release Notes:
+-autosnort-centOS script changes:
+--Added in a check to see if the epel-release RPM package is already there; If it is, the script no longer exits. Special Thanks to keithmccammon and darkshade for providing sample code for a fix, and bringing the issue to my attention. Again, sorry it took so damned long!
+--Removed all instances of catting and piping to grep. Grep is capable of reading from files directly. Results in a slight efficiency increase.
+--Lots of minor changes to formatting and output given to the user to make things a little more user-friendly.
+--Upgraded to use pullpork 0.7.0
+--- In addition to download the standard VRT rule release, pulledpork now downloads the Snort community rules, and the ip blacklist from the VRT labs site
+--- pulledpork now generates sid-msg.map version 2 output
+--Efficiency enhancement: The entire pulledpork routine only runs pulledpork once, making the rule setup phase significantly faster.
+
+-snorby-centOS script changes:
+--Lots of minor formatting changes
+--Removed all instances of catting and piping to grep. Grep files directly now.
+--the rvm (Ruby Version Manager) tool download and installation is now torn down a bit more cleanly.
+--fixed an issue reported on Autosnort-Ubuntu in which bundler would bomb. The work-around? run bundler twice. once with --no-deployment, then in --deployment. To my knowledge this is still broken (snorby issue #323). This makes snorby installation a bit longer, but you can still have your shinies, kids. Thanks to Gualty for reporting this issue.
+--Git clone changed to https (took me long enough...) Special Thanks to pinglord for reporting this issue via Github.
+--Changed permissions of database.yml and snorby_config.yml to be readable only by the www-data user (0400). Everything still works just fine.
+--Stopped using a2ensite and a2dissite. Debian doesn't use Apache 2.4 yet, which seems to be very pickly about only allowing users to use a2ensite and a2dissite on files ending in ".conf", but I've seen in it Ubuntu, and I'm nipping this in the bud now. Renamed the /etc/apache2/sites-available/snorby file to snorby.conf, and now handle manually creation/removal of symlinks to sites-available. This is to ensure compatibility between older versions of Apache and newer versions (2.4+)
+
+snortreport-centOS script changes:
+--Very minor formatting changes
+--Snort Report version upgraded to 1.3.4 from 1.3.3
+--Unfortunately still has to enable short_open tags. Let me explain. short_open tags are using "<?" instead of "<?php" and "<?=" instead of php echo. "<?" causes problems in parsing XML, it's going to be deprecated, and it's an indicator of sloppy php code. I can't code in PHP to save my life and even I've figured this much out. "<?=" however doesn't cause any conflicts, and in fact php 5.4+ support this shortcut even if short open tags is turned off in php.ini. The problem is that CentOS uses a pre 5.4 version of php. Can't fix this with the version of php in the standard and/or epel repository.
+--Ensured compatibility with new and old versions of Apache by making a very minor change the sed line that modifies DocumentRoot
+--Upgraded jpgraph version to 3.05.
+--The script now changes ownership for jpgraph and snortreport directories to be owned by www-data user and group (recursively)
+--Changed file permissions on srconf.php. This file is now only readable by the www-data user (0400). Everything still works just fine.
+
+-syslog_full-centOS script changes:
+--Minor formatting changes.
+--Removed all "cat" commands for slightly more efficient shell script.
+
+BASE-ubuntu and Aanval-ubtu script changes
+--Very minor formatting changes
+--Ensured compatibility with new and old versions of Apache by making a very minor change the sed line that modifies DocumentRoot
+
+
+Bug Fixes:
+-autosnort-centOS:
+--Significantly improved the OS version check at the start of the script.
+
+snorby-centOS:
+--The script show now properly download the latest ruby 1.9.x release, like it used to
+--Clone of snorby from github is now https only
+--Resolved autosnort issue 20 (snorby issue 323) via work-around that involves running bundler --no-deployment, followed by running bundler again with --deployment. It now takes bundler twice as long to perform its installation, but for now, this is the only viable work-around I've found until Mephux/Snorby team closes out this issue.
+
+##################
+Previous Releases
+##################
+
+autosnort-centOS-08-18-2013.sh
 
 - Updated the entire look and feel of the main autosnort installation script. CentOS/RHEL users now have the metasploit like prompts just like the Debian and Ubuntu users. Only things the user should be aware of are printed to the screen now:
 -- Status updates are in blue
@@ -46,9 +98,6 @@ Release Notes:
 - All web interface installation scripts for RHEL-based distros have had the ownership of DocumentRoot changed to the apache user and group
 -Fixed minor grammatical and syntactical errors littered throughout the script.     
 
-##################
-Previous Releases
-##################
 
 autosnort-centOS-04-21-2013.sh
 
