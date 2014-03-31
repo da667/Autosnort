@@ -23,7 +23,33 @@ cd /root;sudo bash autosnort-debian-mm-dd-yyyy.sh
 autosnort-Debian Release Notes
 ##############################
 
-Current Release: autosnort-debian-02-08-2014.sh
+Current Release: autosnort-debian-03-31-2014.sh
+
+So, this all started when a user notified me that gen-msg.map is no longer provided by rule tarballs, and as a result barnyard2 wouldn't start when installed by autosnort. I made a few changes to autosnort, so sit tight:
+
+-autosnort-debian script changes:
+
+--removed the choice to install a VRT rule tarball from the filesystem. There are a few reasons for this:
+1) the sid-msg.map included in the rule tarball doesn't contain everything needed. To generate a good, valid sid-msg.map the user would need to pull the perl script from oinkmaster to do this, or download pulled pork to do this for them anyway.
+2) pulledpork is the recommended tool for managing snort rulesets, and has been for some amount of time. If users really want to enable all snort rules at once, pulledpork supports it via enablesid.conf and regex magic.
+3) one less question to ask the users during setup, a long stretch of time where the script does what it needs to without user intervention... (hint of things to come..)
+--Shared Object rule stubs are now included in the snort.rules file; so_rules.rules is no longer generated, but the so_rules directory is still there. Pulled Pork seperates out all Shared Object rules and organized them by category. to find your Shared Object rules, you can use the expressions "GID:3" to search by category, or the expression "engine shared" to list all shared object rules in the snort.rules file.
+--Installed the necessary packages and made the necessary configuration changes to enable support for the NFQUEUE DAQ module; Autosnort Debian should now be capable of supporting inline mode operation via both AFPACKET and NFQUEUE.
+
+snorby script changes:
+
+
+bug fixes:
+--gen-msg.map is copied out of the /usr/src/$snortver/etc now (so the untarred directory of the version of snort the script downloads), since rule tarballs no longer contain gen-msg.map. Thanks to David Earp for notifying me of this issue.
+--Snort 2.9.6.0 has been the production release of snort for a while now, long enough for me to actually verify that the Shared Object rule generation works. spoilers: it sort-of, but not really worked. This has been fixed.
+---The SO files would be put into the right place, but the rule stubs (SO rule headers) wouldn't be generated. Pulledpork actually executes snort to generate the SO rule stubs, but because snort would read the config, not find things where the config said they were, would summarily barf with no rule stubs. Fixed the script by generating some dummy files before pulled pork is ran, and placing files where pulled pork expects them.
+--Experienced a problem with rvm not downloading properly on Debian's wget because the certificate did not match the name of the site for rvm.io. As much as I detest --no-check-certificates (It's like I'm really using HTTP!). While this isn't a bug, it's more of an evil preventative action.
+
+##################
+Previous Releases
+##################
+
+autosnort-debian-02-08-2014.sh
 
 Release Notes:
 
@@ -73,9 +99,6 @@ snorby-debian:
 --Clone of snorby from github is now https only (Pre-cursor to fixing issue 19 on CentOS)
 --Resolved autosnort issue 20 (snorby issue 323) via work-around that involves running bundler --no-deployment, followed by running bundler again with --deployment. It now takes bundler twice as long to perform its installation, but for now, this is the only viable work-around I've found until Mephux/Snorby team closes out this issue.
 
-##################
-Previous Releases
-##################
 
 autosnort-debian-08-18-2013.sh
 

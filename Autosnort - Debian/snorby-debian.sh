@@ -51,7 +51,7 @@ fi
 
 print_status "Acquiring RVM.."
 
-wget https://get.rvm.io -O rvm_stable.sh &>> $snorby_logfile
+wget https://get.rvm.io --no-check-certificate -O rvm_stable.sh &>> $snorby_logfile
 if [ $? -eq 1 ]; then
 	print_error "Failed to acquire rvm installation script. Please see $snorby_logfile for details."
 	exit 1
