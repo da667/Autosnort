@@ -23,7 +23,32 @@ cd /root;sudo bash autosnort-centOS-mm-dd-yyyy.sh
 autosnort-centOS Release Notes
 ##############################
 
-Current Release: autosnort-centOS-03-31-14.sh
+Current Release: autosnort-centOS-06-06-2014.sh
+
+Starting some much-needed changes in anticipation of my upcoming talk at Bsides Las Vegas. We'll call the next coming releases the "getting my sh** together" releases.
+
+-autosnort-centOS script changes
+
+--If you elect to install a web server and mysql as a part of a web interface installation, mod_ssl is now installed with httpd. Why? Keep reading...
+--If you elect to install a web server and mysql as a part of a web interface installation, openssl now generates a private key and a self-signed cert. The key and cert location are placed in /etc/httpd/ssl. Again... Why? Well, where there's smoke there's fire...
+
+snorby script changes:
+--Went over the script to try and improve efficiency and tested whether or not the gemfile/gemfile.lock fixes and/or the having to run bundler TWICE IN A ROW was still a problem. The good news? The Snorby team fixed those problems. The bad news? They, of course, never told anyone. The snorby install still takes the most time out of all the rest of the supported interfaces, but now, it's a bit faster.
+--Made significant changes to the Virtual Host settings in the script. This is to support Snorby over HTTPS:
+---A Virtual Host on port 80 redirects all HTTP requests to HTTPS via mod_rewrite (enforced encryption)
+---Did some advanced SSL configuration to support PFS and stronger crypto, per the recommendations of the Qualys SSL Scanner team's blog. The crypto is strong with this one.
+---/etc/httpd/conf.d/ssl.conf is removed from that directory and backed up to /etc/httpd/sslconf.bak; this is so the changes we're writing to /etc/httpd/conf/httpd.conf don't conflict with conf.d/ssl.conf (which will override SSL Virtual Host settings in httpd.conf, a fact I learned today.)
+---Don't forget: run system-config-firewall-tui and allow WWW and Secure WWW inbound.
+---Expect the other web interfaces to get some SSL love in the future as well.
+
+Bug Fixes:
+--The EPEL repo check at the start of the autosnort-centOS script was flawed; It was not download the epel-release RPM as desired if EPEL was not already there. Changed some things slightly and appears to be working as intended now.
+
+##################
+Previous Releases
+##################
+
+autosnort-centOS-03-31-14.sh
 
 So, this all started when a user notified me that gen-msg.map is no longer provided by rule tarballs, and as a result barnyard2 wouldn't start when installed by autosnort. I made a few changes to autosnort, so sit tight:
 
@@ -43,9 +68,6 @@ bug fixes:
 --Snort 2.9.6.0 has been the production release of snort for a while now, long enough for me to actually verify that the Shared Object rule generation works. spoilers: it sort-of, but not really worked. This has been fixed.
 ---The SO files would be put into the right place, but the rule stubs (SO rule headers) wouldn't be generated. Pulledpork actually executes snort to generate the SO rule stubs, but because snort would read the config, not find things where the config said they were, would summarily barf with no rule stubs. Fixed the script by generating some dummy files before pulled pork is ran, and placing files where pulled pork expects them.
 
-##################
-Previous Releases
-##################
 
 autosnort-03-23-CentOS.sh
 

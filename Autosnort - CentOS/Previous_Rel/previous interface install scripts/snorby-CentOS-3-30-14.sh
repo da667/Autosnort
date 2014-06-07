@@ -39,7 +39,7 @@ function print_notification ()
 #This entire first block is to: Grab pre-reqs for Snorby, rvm (to install and automatically fix dependencies for ruby), install all the gems needed for snorby, then pull down snorby via github.
 
 print_status "Acquiring packages for Snorby (this may take a little while).."
-yum -y install libyaml-devel openssl-devel git-core libxslt-devel sqlite-devel mysql++-devel httpd-devel curl-devel jre &>> $snorby_logfile
+yum -y install libyaml-devel openssl-devel git-core libxslt-devel sqlite-devel mysql++-devel httpd-devel curl-devel curl jre &>> $snorby_logfile
 if [ $? -eq 0 ]; then
 	print_good "Packages successfully installed."
 else
@@ -150,7 +150,7 @@ print_good "Snorby successfully configured."
 
 ########################################
 
-#This entire block and all the echo statements below are to install the passenger apache module, and set up snorby's virtual host. I don't know much about rails or ruby, other than passenger is considered vital to getting everything to work. This compiles passenger, adds it to apache2.conf and creates two vhosts: one on port 80 to redirect http requests to the second virtual host on port 443, running https. SSL FTW!
+#This entire block and all the echo statements below are to install the passenger apache module. I don't know much about rails or ruby, other than passenger is considered vital to getting everything to work. This compiles passenger, adds it to apache2.conf and creates a new default site for snorby
 
 print_status "Compiling and configuring Passenger module (this will take a moment or two).."
 
@@ -164,78 +164,75 @@ else
 	print_good "Compiled passenger."
 fi
 
-print_status "Adding necessary passenger module and Virtual Host settings to /etc/httpd/conf/httpd.conf.."
+print_status "Adding necessary passenger module settings to /etc/httpd/conf/httpd.conf.."
 #making a backup since snorby requires us to do some funky things to httpd.conf
 cp /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.orig
 #add to apache2.conf:
-
-echo "# This stuff is to make Snorby work properly. mod_passenger is required for Snorby/Passenger to work." >> /etc/httpd/conf/httpd.conf
-echo "# Mod_ssl provides https, mod_rewrite is enabled already and will be used to force users to use HTTPS." >> /etc/httpd/conf/httpd.conf
-echo "LoadModule ssl_module modules/mod_ssl.so" >> /etc/httpd/conf/httpd.conf
-echo "Listen 443" >> /etc/httpd/conf/httpd.conf
+echo "" >> /etc/httpd/conf/httpd.conf
+echo "# This stuff is to make Snorby work properly. mod_passenger is required for Snorby to work." >> /etc/httpd/conf/httpd.conf
+echo "" >> /etc/httpd/conf/httpd.conf
 echo "LoadModule passenger_module /usr/local/rvm/gems/ruby-$rubyver/gems/passenger-$passengerver/buildout/apache2/mod_passenger.so" >> /etc/httpd/conf/httpd.conf
 echo "PassengerRoot /usr/local/rvm/gems/ruby-$rubyver/gems/passenger-$passengerver" >> /etc/httpd/conf/httpd.conf
 echo "PassengerDefaultRuby /usr/local/rvm/wrappers/ruby-$rubyver/ruby" >> /etc/httpd/conf/httpd.conf
 echo "PassengerDefaultUser apache" >> /etc/httpd/conf/httpd.conf
 echo "PassengerUser apache" >> /etc/httpd/conf/httpd.conf
 echo "PassengerGroup apache" >> /etc/httpd/conf/httpd.conf
-echo "" >> /etc/httpd/conf/httpd.conf
-echo "#This VHOST exists as a catch, to redirect any requests made via HTTP to HTTPS." >> /etc/httpd/conf/httpd.conf
+
+print_good "Apache successfully configured to use passenger."
+
+
+
+########################################
+
+#Drop this at the end of httpd.conf along with the passenger settings.
+
+print_status "Configuring apache to point to snorby's DocumentRoot as the default site.."
+
 echo "<VirtualHost *:80>" >> /etc/httpd/conf/httpd.conf
-echo "        DocumentRoot /var/www/html/snorby/public" >> /etc/httpd/conf/httpd.conf
-echo "        #Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/httpd/conf/httpd.conf
-echo "        RewriteEngine On" >> /etc/httpd/conf/httpd.conf
-echo "        RewriteCond %{HTTPS} off" >> /etc/httpd/conf/httpd.conf
-echo "        RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/httpd/conf/httpd.conf
-echo "</VirtualHost>" >> /etc/httpd/conf/httpd.conf
-echo "" >> /etc/httpd/conf/httpd.conf
-echo "<IfModule mod_ssl.c>" >> /etc/httpd/conf/httpd.conf
-echo "	<VirtualHost *:443>" >> /etc/httpd/conf/httpd.conf
-echo "		#SSL Settings, including support for PFS." >> /etc/httpd/conf/httpd.conf
-echo "		SSLEngine on" >> /etc/httpd/conf/httpd.conf
-echo "		SSLCertificateFile /etc/httpd/ssl/ids.cert" >> /etc/httpd/conf/httpd.conf
-echo "		SSLCertificateKeyFile /etc/httpd/ssl/ids.key" >> /etc/httpd/conf/httpd.conf
-echo "		SSLProtocol all -SSLv2 -SSLv3" >> /etc/httpd/conf/httpd.conf
-echo "		SSLHonorCipherOrder on" >> /etc/httpd/conf/httpd.conf
-echo "		SSLCipherSuite \"EECDH+ECDSA+AESGCM EECDH+aRSA+AESGCM EECDH+ECDSA+SHA384 EECDH+ECDSA+SHA256 EECDH+aRSA+SHA384 EECDH+aRSA+SHA256 EECDH+aRSA+RC4 EECDH EDH+aRSA RC4 !aNULL !eNULL !LOW !3DES !MD5 !EXP !PSK !SRP !DSS\"" >> /etc/httpd/conf/httpd.conf
-echo "" >> /etc/httpd/conf/httpd.conf
-echo "		#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/httpd/conf/httpd.conf
-echo "		RewriteEngine On" >> /etc/httpd/conf/httpd.conf
-echo "		RewriteCond %{HTTPS} off" >> /etc/httpd/conf/httpd.conf
-echo "		RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/httpd/conf/httpd.conf
-echo "" >> /etc/httpd/conf/httpd.conf
-echo "		#Now, we finally get to configuring our VHOST." >> /etc/httpd/conf/httpd.conf
-echo "		ServerName snorby.localhost" >> /etc/httpd/conf/httpd.conf
-echo "		DocumentRoot /var/www/html/snorby/public" >> /etc/httpd/conf/httpd.conf
-echo "		<Directory /var/www/html/snorby/public>" >> /etc/httpd/conf/httpd.conf
-echo "          # This relaxes Apache security settings." >> /etc/httpd/conf/httpd.conf
+echo "     ServerName snorby.localhost" >> /etc/httpd/conf/httpd.conf
+echo "     # !!! Be sure to point DocumentRoot to 'public'!" >> /etc/httpd/conf/httpd.conf
+echo "     DocumentRoot /var/www/html/snorby/public" >> /etc/httpd/conf/httpd.conf
+echo "     <Directory /var/www/html/snorby/public>" >> /etc/httpd/conf/httpd.conf
+echo "          # This relaxes Apache security settings.">> /etc/httpd/conf/httpd.conf
 echo "          AllowOverride all" >> /etc/httpd/conf/httpd.conf
 echo "          # MultiViews must be turned off." >> /etc/httpd/conf/httpd.conf
 echo "          Options -MultiViews" >> /etc/httpd/conf/httpd.conf
-echo "		</Directory>" >> /etc/httpd/conf/httpd.conf
-echo "	</VirtualHost>" >> /etc/httpd/conf/httpd.conf
-echo "</IfModule>" >> /etc/httpd/conf/httpd.conf
+echo "     </Directory>" >> /etc/httpd/conf/httpd.conf
+echo "</VirtualHost>" >> /etc/httpd/conf/httpd.conf
 
-#create a backup of ssl.conf. ssl.conf cannot be in conf.d, otherwise the settings in this file override what we set up in httpd.conf for https sites.
-mv /etc/httpd/conf.d/ssl.conf /etc/httpd/sslconf.bak
-
-print_good "Passenger Module config and Snorby Virtual Host data added to /etc/httpd/conf/httpd.conf"
+print_good "Snorby's DocumentRoot set as the default site."
 
 #The below portion are the final steps. The first thing we do is make a copy of the Gemfile.lock, and using grep -v, remove all references to psych_shield in the Gemfile.lock file. Reason for this is that bundler will bomb out because it sees an inconsistency with the Gemfile.lock and Gemfile. Grepping out psych_shield fixes that.
 
 #The rest is to perform the final installation steps for snorby use bundler to grab the remaining gems needed and configure everything, then rake to make it run. The a2dis/ensite are to disable the default apache site and enable snorby, setting it as the default site.
 #TODO:https
 
-print_status "Running bundler.."
+print_status "Running bundler (1 of 2).."
 
 cd /var/www/html/snorby
 
-bundle install --deployment &>> $snorby_logfile
+#Ran into issues with psych_shield causing bundler to bail out."
+
+cp Gemfile.lock Gemfile.lock.bak
+grep -v "psych_shield" Gemfile.lock.bak > Gemfile.lock
+
+#Running bundle install with --no-deployment option. Direct result of issue #323 on snorby github. This was the work-around that I found to work. Afterwards, we re-run bundle with --deployment, and everything _appears_ to work. Did I mention how much I don't understand and hate ruby on rails?
+
+bundle install --no-deployment &>> $snorby_logfile
 if [ $? -ne 0 ]; then
-	print_error "Bundler failed to run. Please see $snorby_logfile for more details."
+	print_error "Bundler (1 of 2) failed to run. Please see $snorby_logfile for more details."
 	exit 1
 else
-	print_good "Bundler completed."
+	print_good "Bundler (1 of 2) completed."
+fi
+
+print_status "Running bundler (2 of 2).."
+bundle install --deployment &>> $snorby_logfile
+if [ $? -ne 0 ]; then
+	print_error "Bundler (2 of 2) failed to run. Please see $snorby_logfile for more details."
+	exit 1
+else
+	print_good "Bundler (2 of 2) completed."
 fi
 
 #TODO:`which pdfkit` --install-wkhtmltopdf 
@@ -474,5 +471,11 @@ else
 fi
 
 print_notification "The log file for this interface installation is located at: $snorby_logfile"
+
+#SSL config:
+#a2enmod ssl
+#a2enmod rewrite
+#more to come here...
+
 exit 0
 
