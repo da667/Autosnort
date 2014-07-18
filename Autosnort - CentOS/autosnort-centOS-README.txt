@@ -23,26 +23,34 @@ cd /root;sudo bash autosnort-centOS-mm-dd-yyyy.sh
 autosnort-centOS Release Notes
 ##############################
 
-Current Release: autosnort-centOS-06-06-2014.sh
+Current Release: autosnort-centOS-07-18-2014.sh
 
-Starting some much-needed changes in anticipation of my upcoming talk at Bsides Las Vegas. We'll call the next coming releases the "getting my sh** together" releases.
+Codename:Remembrance -- You lived a full life. Even so, I will never forget you.
 
--autosnort-centOS script changes
+-autosnort-centOS script changes:
 
---If you elect to install a web server and mysql as a part of a web interface installation, mod_ssl is now installed with httpd. Why? Keep reading...
---If you elect to install a web server and mysql as a part of a web interface installation, openssl now generates a private key and a self-signed cert. The key and cert location are placed in /etc/httpd/ssl. Again... Why? Well, where there's smoke there's fire...
+--If you elect to install a web server and mysql as a part of a web installation the following changes are made:
+---httpd.conf is backed up to /etc/httpd
+---ssl.conf is moved/backed up to /etc/httpd I found that ssl.conf will interfere with https virtual hosts if not moved.
+---mod_ssl is now installed with httpd
+---openssl is called and generates a private and a self-signed certificate as a part of the web server and database installation.
+
 
 snorby script changes:
 --Went over the script to try and improve efficiency and tested whether or not the gemfile/gemfile.lock fixes and/or the having to run bundler TWICE IN A ROW was still a problem. The good news? The Snorby team fixed those problems. The bad news? They, of course, never told anyone. The snorby install still takes the most time out of all the rest of the supported interfaces, but now, it's a bit faster.
---Made significant changes to the Virtual Host settings in the script. This is to support Snorby over HTTPS:
+
+snortreport script changes:
+--Managed to craft a series of sed expressions that remove all php short open and short echo tags once and for all. No need to turn on PHP's short open tag directive EVER AGAIN. And there was much rejoicing.
+
+all web interface scripts:
+--Made significant changes to the Virtual Host settings across all web interface installations. In order to fully support all web interfaces being served over SSL (HTTPS):
 ---A Virtual Host on port 80 redirects all HTTP requests to HTTPS via mod_rewrite (enforced encryption)
 ---Did some advanced SSL configuration to support PFS and stronger crypto, per the recommendations of the Qualys SSL Scanner team's blog. The crypto is strong with this one.
----/etc/httpd/conf.d/ssl.conf is removed from that directory and backed up to /etc/httpd/sslconf.bak; this is so the changes we're writing to /etc/httpd/conf/httpd.conf don't conflict with conf.d/ssl.conf (which will override SSL Virtual Host settings in httpd.conf, a fact I learned today.)
----Don't forget: run system-config-firewall-tui and allow WWW and Secure WWW inbound.
----Expect the other web interfaces to get some SSL love in the future as well.
+---Don't forget: run system-config-firewall-tui and allow WWW and Secure WWW inbound, or for those of you with iptables foo, that's both port 80 and port 443 on your INPUT chain.
 
 Bug Fixes:
---The EPEL repo check at the start of the autosnort-centOS script was flawed; It was not download the epel-release RPM as desired if EPEL was not already there. Changed some things slightly and appears to be working as intended now.
+--Snort.org underwent a face lift recently. A lot of URLs for file downloads and stuff were changed and cleaned up. Fixed autosnort. The checks for the latest version of snort and daq, as well as rule tarballs should be working again and compatible with the new snort.org
+--The EPEL repo detection and download from the fedora project was broken. Fixed.
 
 ##################
 Previous Releases

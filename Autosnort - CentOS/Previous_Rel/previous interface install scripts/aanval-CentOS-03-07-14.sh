@@ -103,93 +103,23 @@ done
 
 ########################################
 
-#Here we're making some virtual hosts in /etc/httpd/conf/httpd.conf, but not before backing it up.
-#We create a port 80 virtual host whose only purpose is to redirect (via mod_rewrite) to the second virtual host
-#The second virtual host is configured for SSL with Perfect Forward Secrecy.
-#As a part of this config, we move /etc/httpd/conf.d/ssl.conf to /etc/httpd, because the settings in that file can and will override over virtual host settings in httpd.conf.
-
-
-cp /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.orig
-
-print_status "Adding Virtual Host settings and reconfiguring httpd to use SSL.."
-
-echo "LoadModule ssl_module modules/mod_ssl.so" >> /etc/httpd/conf/httpd.conf
-echo "Listen 443" >> /etc/httpd/conf/httpd.conf
-echo "" >> /etc/httpd/conf/httpd.conf
-echo "#This VHOST exists as a catch, to redirect any requests made via HTTP to HTTPS." >> /etc/httpd/conf/httpd.conf
-echo "<VirtualHost *:80>" >> /etc/httpd/conf/httpd.conf
-echo "        DocumentRoot /var/www/html/aanval" >> /etc/httpd/conf/httpd.conf
-echo "        #Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/httpd/conf/httpd.conf
-echo "        RewriteEngine On" >> /etc/httpd/conf/httpd.conf
-echo "        RewriteCond %{HTTPS} off" >> /etc/httpd/conf/httpd.conf
-echo "        RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/httpd/conf/httpd.conf
-echo "</VirtualHost>" >> /etc/httpd/conf/httpd.conf
-echo "" >> /etc/httpd/conf/httpd.conf
-echo "<IfModule mod_ssl.c>" >> /etc/httpd/conf/httpd.conf
-echo "	<VirtualHost *:443>" >> /etc/httpd/conf/httpd.conf
-echo "		#SSL Settings, including support for PFS." >> /etc/httpd/conf/httpd.conf
-echo "		SSLEngine on" >> /etc/httpd/conf/httpd.conf
-echo "		SSLCertificateFile /etc/httpd/ssl/ids.cert" >> /etc/httpd/conf/httpd.conf
-echo "		SSLCertificateKeyFile /etc/httpd/ssl/ids.key" >> /etc/httpd/conf/httpd.conf
-echo "		SSLProtocol all -SSLv2 -SSLv3" >> /etc/httpd/conf/httpd.conf
-echo "		SSLHonorCipherOrder on" >> /etc/httpd/conf/httpd.conf
-echo "		SSLCipherSuite \"EECDH+ECDSA+AESGCM EECDH+aRSA+AESGCM EECDH+ECDSA+SHA384 EECDH+ECDSA+SHA256 EECDH+aRSA+SHA384 EECDH+aRSA+SHA256 EECDH+aRSA+RC4 EECDH EDH+aRSA RC4 !aNULL !eNULL !LOW !3DES !MD5 !EXP !PSK !SRP !DSS\"" >> /etc/httpd/conf/httpd.conf
-echo "" >> /etc/httpd/conf/httpd.conf
-echo "		#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/httpd/conf/httpd.conf
-echo "		RewriteEngine On" >> /etc/httpd/conf/httpd.conf
-echo "		RewriteCond %{HTTPS} off" >> /etc/httpd/conf/httpd.conf
-echo "		RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/httpd/conf/httpd.conf
-echo "" >> /etc/httpd/conf/httpd.conf
-echo "		#Now, we finally get to configuring our VHOST." >> /etc/httpd/conf/httpd.conf
-echo "		ServerName aanval.localhost" >> /etc/httpd/conf/httpd.conf
-echo "		DocumentRoot /var/www/html/aanval" >> /etc/httpd/conf/httpd.conf
-echo "	</VirtualHost>" >> /etc/httpd/conf/httpd.conf
-echo "</IfModule>" >> /etc/httpd/conf/httpd.conf
-
-mv /etc/httpd/conf.d/ssl.conf /etc/httpd/sslconf.bak
-
-print_good "httpd reconfigured."
-
-#The remainder of the script is for permissions cleanup -- giving apache ownership of the DocumentRoot, and ensuring SELinux is configured to allow apache to perform actions required for Aanval to function properly.
-
 print_status "Granting ownership of /var/www/html/aanval to apache.."
 
 chown -R apache:apache /var/www/html/aanval
-if [ $? != 0 ];then
-	print_error "Failed to reset ownership. See $aanval_logfile for details."
-	exit 1
-else
-	print_good "Successfully changed file ownership to apache user and group."
-fi
+
+cp /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.orig
+print_status "Resetting default site DocumentRoot and Directory Permissions to /var/www/html/aanval.."
+sed -i 's#/var/www/html#/var/www/html/aanval#g' /etc/httpd/conf/httpd.conf &>> $aanval_logfile
 
 print_status "Configuring SELinux permissions for Aanval.."
 print_notification "Setsebool takes a moment or two to do its thing. Please be patient, I promise the script isn't hanging."
 #discovered during testing that this HAD to be set for aanval to be able to talk to the mysql database.
-
 setsebool -P httpd_can_network_connect_db 1
-if [ $? != 0 ];then
-	print_error "Failed run setsebool. See $aanval_logfile for details."
-	exit 1
-else
-	print_good "Successfully ran setsebool to allow database connections."
-fi
-
 #this is to ensure httpd has access to do what it needs to files in /var/www/html/aanval
 cd /var/www/html
 chcon -R -t httpd_sys_rw_content_t aanval/
-if [ $? != 0 ];then
-	print_error "Failed to modify SELinux permissions. See $aanval_logfile for details."
-	exit 1
-else
-	print_good "Successfully modified SELinux permissions."
-fi
 
 print_good "SELinux permissions successfully modified."
-
-########################################
-# The background processors are vital to Aanval working properly. They're responsible for importing data to the aanval interface.
-# We start the background processors now, and ask the user if they want to add a command to start them at boot via rc.local, or if they want to handle that themselves.
-# TODO: Make a full init script for this.
 
 print_status "Starting background processors for Aanval web interface.."
 cd /var/www/html/aanval/apps
@@ -200,6 +130,8 @@ if [ $? != 0 ];then
 else
 	print_good "Successfully started background processors."
 fi
+
+########################################
 
 print_notification "The background processors need to run in order to export events fro the snort database to aanval's database."
 while true; do
@@ -227,16 +159,6 @@ while true; do
 		;;
 	esac
 done
-
-#This restart is to make sure the configuration changes to httpd were performed succesfully and do not cause any problems starting/stopping the service.
-print_status "Restarting httpd.."
-service httpd restart &>> $aanval_logfile
-if [ $? != 0 ];then
-	print_error "httpd failed to restart. See $aanval_logfile for details."
-	exit 1
-else
-	print_good "Successfully restarted httpd."
-fi
 
 print_notification "The log file for this interface installation is located at: $aanval_logfile"
 

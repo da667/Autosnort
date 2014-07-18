@@ -114,19 +114,78 @@ print_good "Snort Report successfully configured to talk to mysql database."
 ########################################
 
 # Snort Report is littered with short open tags.
-# As much as I really want to banish them from all OS versions FOREVER,
-# Until CentOS or the EPEL repos have PHP 5.4+, I can't do it and here's why:
-# If the programmer uses shortcuts like <?, these are easy to fix with sed.
-# If <?= is used, that's not as easy to fix. If you know an easy way to automatically replace these lines, let me know.
+# sed statement 1 removes all short open tags, but breaks some things.
+# sed statement 2 fixes some of the things that sed statement 1 mistakenly replaced
+# sed statement 3 fixes all instances of <?= that sed statement 1 mistakenly replaced
+# end product: no short open tags, no need to turn on the short open tags directive in php.ini
 
 
-print_status "Reconfiguring php.ini..."
-sed -i 's/short\_open\_tag \= Off/short\_open\_tag \= On/' /etc/php.ini
-if [ $? -eq 0 ]; then
-	print_good "php.ini successfully reconfigured."
-else
-	print_error "failed to modify php.ini. Check $sreport_logfile for details."
+print_status "Fixing short open tags.."
+
+cd /var/www/html/snortreport
+
+for s_open_file in `ls -1 *.php`; do 
+	sed -i 's#<?#<?php#g' $s_open_file
+	sed -i 's#<?phpphp#<?php#g' $s_open_file
+	sed -i 's#<?php=#<?php echo #g' $s_open_file
+done
+
+print_good "Short open tags fixed."
+
+
+########################################
+#Here we're making some virtual hosts in /etc/httpd/conf/httpd.conf, but not before backing it up.
+#We create a port 80 virtual host whose only purpose is to redirect (via mod_rewrite) to the second virtual host
+#The second virtual host is configured for SSL with Perfect Forward Secrecy.
+#As a part of this config, we move /etc/httpd/conf.d/ssl.conf to /etc/httpd, because the settings in that file can and will override over virtual host settings in httpd.conf.
+
+print_status "Adding Virtual Host settings and reconfiguring httpd to use SSL.."
+
+echo "LoadModule ssl_module modules/mod_ssl.so" >> /etc/httpd/conf/httpd.conf
+echo "Listen 443" >> /etc/httpd/conf/httpd.conf
+echo "" >> /etc/httpd/conf/httpd.conf
+echo "#This VHOST exists as a catch, to redirect any requests made via HTTP to HTTPS." >> /etc/httpd/conf/httpd.conf
+echo "<VirtualHost *:80>" >> /etc/httpd/conf/httpd.conf
+echo "        DocumentRoot /var/www/html/snortreport" >> /etc/httpd/conf/httpd.conf
+echo "        #Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/httpd/conf/httpd.conf
+echo "        RewriteEngine On" >> /etc/httpd/conf/httpd.conf
+echo "        RewriteCond %{HTTPS} off" >> /etc/httpd/conf/httpd.conf
+echo "        RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/httpd/conf/httpd.conf
+echo "</VirtualHost>" >> /etc/httpd/conf/httpd.conf
+echo "" >> /etc/httpd/conf/httpd.conf
+echo "<IfModule mod_ssl.c>" >> /etc/httpd/conf/httpd.conf
+echo "	<VirtualHost *:443>" >> /etc/httpd/conf/httpd.conf
+echo "		#SSL Settings, including support for PFS." >> /etc/httpd/conf/httpd.conf
+echo "		SSLEngine on" >> /etc/httpd/conf/httpd.conf
+echo "		SSLCertificateFile /etc/httpd/ssl/ids.cert" >> /etc/httpd/conf/httpd.conf
+echo "		SSLCertificateKeyFile /etc/httpd/ssl/ids.key" >> /etc/httpd/conf/httpd.conf
+echo "		SSLProtocol all -SSLv2 -SSLv3" >> /etc/httpd/conf/httpd.conf
+echo "		SSLHonorCipherOrder on" >> /etc/httpd/conf/httpd.conf
+echo "		SSLCipherSuite \"EECDH+ECDSA+AESGCM EECDH+aRSA+AESGCM EECDH+ECDSA+SHA384 EECDH+ECDSA+SHA256 EECDH+aRSA+SHA384 EECDH+aRSA+SHA256 EECDH+aRSA+RC4 EECDH EDH+aRSA RC4 !aNULL !eNULL !LOW !3DES !MD5 !EXP !PSK !SRP !DSS\"" >> /etc/httpd/conf/httpd.conf
+echo "" >> /etc/httpd/conf/httpd.conf
+echo "		#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/httpd/conf/httpd.conf
+echo "		RewriteEngine On" >> /etc/httpd/conf/httpd.conf
+echo "		RewriteCond %{HTTPS} off" >> /etc/httpd/conf/httpd.conf
+echo "		RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/httpd/conf/httpd.conf
+echo "" >> /etc/httpd/conf/httpd.conf
+echo "		#Now, we finally get to configuring our VHOST." >> /etc/httpd/conf/httpd.conf
+echo "		ServerName snortreport.localhost" >> /etc/httpd/conf/httpd.conf
+echo "		DocumentRoot /var/www/html/snortreport" >> /etc/httpd/conf/httpd.conf
+echo "	</VirtualHost>" >> /etc/httpd/conf/httpd.conf
+echo "</IfModule>" >> /etc/httpd/conf/httpd.conf
+
+print_good "httpd reconfigured."
+
+########################################
+
+print_status "Reconfiguring SELinux Permissions to allow httpd r/w access to the snortreport directory.."
+cd /var/www/html
+chcon -R -t httpd_sys_rw_content_t snortreport/ &>> $sreport_logfile
+if [ $? != 0 ];then
+	print_error "Failed to reset SELinux permissions. See $sreport_logfile for details."
 	exit 1
+else
+	print_good "Successfully reset SELinux permissions."
 fi
 
 ########################################
@@ -134,26 +193,37 @@ fi
 
 print_status "Setting file ownership for /var/www/html/snortreport, /var/www/html/jpgraph to apache; making srconf.php read-only by apache user and group.."
 
-chown -R apache:apache /var/www/html/snortreport
-chown -R apache:apache /var/www/html/jpgraph
+chown -R apache:apache /var/www/html/snortreport &>> $sreport_logfile
+if [ $? != 0 ];then
+	print_error "Failed to reset ownership of /var/www/html/snortreport. See $sreport_logfile for details."
+	exit 1
+else
+	print_good "Successfully changed file ownership of /var/www/html/snortreport to apache user and group."
+fi
 
-chmod 400 /var/www/html/snortreport/srconf.php
+chown -R apache:apache /var/www/html/jpgraph &>> $sreport_logfile
+if [ $? != 0 ];then
+	print_error "Failed to reset ownership of /var/www/html/jpgraph. See $sreport_logfile for details."
+	exit 1
+else
+	print_good "Successfully changed file ownership of /var/www/html/jpgraph to apache user and group."
+fi
 
-print_good "File permissions reset."
+chmod 400 /var/www/html/snortreport/srconf.php &>> $sreport_logfile
+if [ $? != 0 ];then
+	print_error "Failed to reset ownership of /var/www/html/snortreport/srconf.php. See $sreport_logfile for details."
+	exit 1
+else
+	print_good "Successfully changed file permissions of /var/www/html/snortreport/srconf.php."
+fi
 
-########################################
-
-#make a backup of /etc/httpd/conf/httpd.conf before we begin editing it..
-
-cp /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.orig
-print_status "Resetting default site DocumentRoot and Directory Permissions to /var/www/html/snortreport.."
-sed -i 's#/var/www/html#/var/www/html/snortreport#g' /etc/httpd/conf/httpd.conf
-
-print_status "Reconfiguring SELinux Permissions to allow httpd r/w access to the snortreport directory.."
-chcon -R -t httpd_sys_rw_content_t snortreport/
-
-print_good "SELinux permissions successfully modified."
-
+service httpd restart &>> $sreport_logfile
+if [ $? != 0 ];then
+	print_error "httpd failed to restart. See $sreport_logfile for details."
+	exit 1
+else
+	print_good "Successfully restarted httpd."
+fi
 
 
 print_notification "The log file for this interface installation is located at: $sreport_logfile"

@@ -39,7 +39,7 @@ function print_notification ()
 
 print_status "Grabbing packages required for BASE.."
 
-yum -y install php php-common php-gd php-cli php-mysql php-pear.noarch php-adodb.noarch perl-libwww-perl openssl-devel mod_ssl &>> $base_logfile
+yum -y install php php-common php-gd php-cli php-mysql php-pear.noarch php-adodb.noarch perl-libwww-perl openssl-devel &>> $base_logfile
 if [ $? != 0 ];then
 	print_error "Failed to acquire required packages for Base. See $base_logfile for details."
 	exit 1
@@ -104,25 +104,84 @@ mv base-* base
 
 ########################################
 
-#Other configuration Errata specific to CentOS to get this to work: 
-#Resetting DocumentRoot
-#Setting ownership of all Base's stuff to be owned by apache 
-#Aand of course, SELinux permission changes found that BASE needs httpd_sys_rw_content_t perms to work with the database.
+#Here we are creating some Virtual Host settings in /etc/httpd/conf/httpd.conf.
+#We create an HTTP Virtual Host to redirect users to our HTTPS Virtual Host, to enforce SSL.
+#We also move /etc/httpd/conf.d/ssl.conf to prevent it from overriding our HTTPS config in httpd.conf
+#Set ownership of all Base's stuff to be owned by apache 
+#And of course, SELinux permission changes found that BASE needs httpd_sys_rw_content_t perms to work with the database.
 
-print_status "Resetting default site DocumentRoot to /var/www/html/base."
+print_status "Adding Virtual Host settings and reconfiguring httpd to use SSL.."
 
 #making a copy of httpd.conf before we reset DocumentRoot, in case the script explodes in a fit of rage, the user has a backup httpd.conf.
 cp /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.orig
-print_status "Resetting default site DocumentRoot and Directory to /var/www/html/base."
-sed -i 's#/var/www/html#/var/www/html/base#g' /etc/httpd/conf/httpd.conf &>> $base_logfile
 
+echo "LoadModule ssl_module modules/mod_ssl.so" >> /etc/httpd/conf/httpd.conf
+echo "Listen 443" >> /etc/httpd/conf/httpd.conf
+echo "" >> /etc/httpd/conf/httpd.conf
+echo "#This VHOST exists as a catch, to redirect any requests made via HTTP to HTTPS." >> /etc/httpd/conf/httpd.conf
+echo "<VirtualHost *:80>" >> /etc/httpd/conf/httpd.conf
+echo "        DocumentRoot /var/www/html/base" >> /etc/httpd/conf/httpd.conf
+echo "        #Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/httpd/conf/httpd.conf
+echo "        RewriteEngine On" >> /etc/httpd/conf/httpd.conf
+echo "        RewriteCond %{HTTPS} off" >> /etc/httpd/conf/httpd.conf
+echo "        RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/httpd/conf/httpd.conf
+echo "</VirtualHost>" >> /etc/httpd/conf/httpd.conf
+echo "" >> /etc/httpd/conf/httpd.conf
+echo "<IfModule mod_ssl.c>" >> /etc/httpd/conf/httpd.conf
+echo "	<VirtualHost *:443>" >> /etc/httpd/conf/httpd.conf
+echo "		#SSL Settings, including support for PFS." >> /etc/httpd/conf/httpd.conf
+echo "		SSLEngine on" >> /etc/httpd/conf/httpd.conf
+echo "		SSLCertificateFile /etc/httpd/ssl/ids.cert" >> /etc/httpd/conf/httpd.conf
+echo "		SSLCertificateKeyFile /etc/httpd/ssl/ids.key" >> /etc/httpd/conf/httpd.conf
+echo "		SSLProtocol all -SSLv2 -SSLv3" >> /etc/httpd/conf/httpd.conf
+echo "		SSLHonorCipherOrder on" >> /etc/httpd/conf/httpd.conf
+echo "		SSLCipherSuite \"EECDH+ECDSA+AESGCM EECDH+aRSA+AESGCM EECDH+ECDSA+SHA384 EECDH+ECDSA+SHA256 EECDH+aRSA+SHA384 EECDH+aRSA+SHA256 EECDH+aRSA+RC4 EECDH EDH+aRSA RC4 !aNULL !eNULL !LOW !3DES !MD5 !EXP !PSK !SRP !DSS\"" >> /etc/httpd/conf/httpd.conf
+echo "" >> /etc/httpd/conf/httpd.conf
+echo "		#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/httpd/conf/httpd.conf
+echo "		RewriteEngine On" >> /etc/httpd/conf/httpd.conf
+echo "		RewriteCond %{HTTPS} off" >> /etc/httpd/conf/httpd.conf
+echo "		RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/httpd/conf/httpd.conf
+echo "" >> /etc/httpd/conf/httpd.conf
+echo "		#Now, we finally get to configuring our VHOST." >> /etc/httpd/conf/httpd.conf
+echo "		ServerName base.localhost" >> /etc/httpd/conf/httpd.conf
+echo "		DocumentRoot /var/www/html/base" >> /etc/httpd/conf/httpd.conf
+echo "	</VirtualHost>" >> /etc/httpd/conf/httpd.conf
+echo "</IfModule>" >> /etc/httpd/conf/httpd.conf
+
+#Moving sslconf to another location where its still available, but will not override the config settings we made above.
+mv /etc/httpd/conf.d/ssl.conf /etc/httpd/sslconf.bak
+
+print_good "httpd reconfigured."
 
 #BASE requires the /var/www/html directory to be owned by apache
 print_status "Granting ownership of /var/www/html/base recursively to apache user and group.."
 chown -R apache:apache base/ &>> $base_logfile
+if [ $? != 0 ];then
+	print_error "Failed to reset ownership. See $base_logfile for details."
+	exit 1
+else
+	print_good "Successfully changed file ownership to apache user and group."
+fi
 
+#Base also requires specific SELinux permissions to access its files.
 print_status "Configuring SELinux permissions for the httpd_sys_rw_content_t context recursively under /var/www/html/base.."
 chcon -R -t httpd_sys_rw_content_t base/ &>> $base_logfile
+if [ $? != 0 ];then
+	print_error "Failed to modify SELinux permissions. See $base_logfile for details."
+	exit 1
+else
+	print_good "Successfully modified SELinux permissions."
+fi
+
+#This restart is to make sure the configuration changes to httpd were performed succesfully and do not cause any problems starting/stopping the service.
+print_status "Restarting httpd.."
+service httpd restart &>> $base_logfile
+if [ $? != 0 ];then
+	print_error "httpd failed to restart. See $base_logfile for details."
+	exit 1
+else
+	print_good "Successfully restarted httpd."
+fi
 
 print_notification "The log file for this interface installation is located at: $base_logfile"
 

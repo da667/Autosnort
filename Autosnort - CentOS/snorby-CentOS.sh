@@ -165,8 +165,6 @@ else
 fi
 
 print_status "Adding necessary passenger module and Virtual Host settings to /etc/httpd/conf/httpd.conf.."
-#making a backup since snorby requires us to do some funky things to httpd.conf
-cp /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.orig
 #add to apache2.conf:
 
 echo "# This stuff is to make Snorby work properly. mod_passenger is required for Snorby/Passenger to work." >> /etc/httpd/conf/httpd.conf

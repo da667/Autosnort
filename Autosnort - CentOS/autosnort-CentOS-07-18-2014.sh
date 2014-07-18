@@ -171,7 +171,7 @@ else
 		print_error "failed to reach dl.fedoraproject.org."
 		exit 1
 	fi
-	epel_package=`grep epel-release epel-index.html | cut -d'"' -f8`
+	epel_package=`grep epel-release epel-index.html | cut -d'"' -f6`
 	rm -rf epel-index.html
 	wget https://dl.fedoraproject.org/pub/epel/$epelrel/$arch/$epel_package &>> $logfile
 	if [ $? -ne 0 ]; then
@@ -200,9 +200,10 @@ install_packages ${packages[@]}
 ########################################
 
 #We give the user a choice whether or not they want mysql and/or httpd installed to support a web interface for event review.
-#If they decide they want mysql and httpd, we generate a private key and self-signed cert for HTTPS operation.
-#CentOS doesn't prompt the user for a mysql root user password. We run the secure install script to force the user to assign a password.
-#We also have to add httpd and mysqld services manually, and start them.
+#If they decide they want mysql and httpd, we generate a private key and self-signed cert for HTTPS operation and back up the default configuration files. ssl.conf gets moved otherwise it interferes with the SSL virtual hosts we make.
+
+#We run the secure install script to force the user to assign a password for database privs.
+#We also have to add httpd and mysqld services manually via chkconfig, and start them.
 
 while true; do
 	print_notification "Do you plan on installing a web interface to review intrusion events, such as snortreport, aanval or base? (If in doubt, select option 1)"
@@ -229,17 +230,24 @@ while true; do
 	else
 		print_good "Secure installation script completed."
 	fi
+	
 	print_status "Generating a private key and self-signed SSL certificate for HTTPS operation.."
 	mkdir /etc/httpd/ssl
 	cd /etc/httpd/ssl
 	openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 -subj "/C=US/ST=Nevada/L=LasVegas/O=Security/CN=ids.local" -keyout ids.key  -out ids.cert &>> $logfile
 	if [ $? -ne 0 ]; then
-		print_error "Something went wrong during private and certificate generate. Please check $logfile for details."
+		print_error "Something went wrong during private and certificate generation. Please check $logfile for details."
+		exit 1
 	else
 		print_good "Private Key and Self-Signed Certificate generated. Location:"
 		print_good "/etc/httpd/ssl/ids.key"
 		print_good "/etc/httpd/ssl/ids.cert"
 	fi
+	
+	chmod 600 /etc/httpd/ssl/ids.*
+	mv /etc/httpd/conf.d/ssl.conf /etc/httpd/sslconf.bak
+	cp /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.orig
+	
 	break
 	;;
 	2)
@@ -261,14 +269,14 @@ print_status "Determining latest versions of snort and daq available on snort.or
 
 
 cd /tmp
-wget http://snort.org/snort-downloads -O /tmp/snort-downloads &>> $logfile
+wget http://snort.org -O /tmp/snort &>> $logfile
 if [ $? -ne 0 ]; then
     print_error "Failed to contact snort.org. Please check $logfile for details."
 	exit 1	
 fi
 
-snorttar=`grep snort-[0-9] /tmp/snort-downloads|cut -d">" -f2 |cut -d"<" -f1 | head -1`
-daqtar=`grep daq /tmp/snort-downloads|cut -d">" -f2 |cut -d"<" -f1 | head -1`
+snorttar=`grep snort-[0-9] /tmp/snort | grep .tar.gz | tail -1 | cut -d"/" -f4 | cut -d\" -f1`
+daqtar=`grep daq-[0-9] /tmp/snort | grep .tar.gz | tail -1 | cut -d"/" -f4 | cut -d\" -f1`
 snortver=`echo $snorttar | sed 's/.tar.gz//g'`
 daqver=`echo $daqtar | sed 's/.tar.gz//g'`
 
@@ -277,7 +285,7 @@ cd /usr/src
 
 print_status "Acquiring $snortver and $daqver from snort.org.."
 
-wget http://snort.org/dl/snort-current/$snorttar -O $snorttar &>> $logfile
+wget http://snort.org/downloads/snort/$snorttar -O $snorttar &>> $logfile
 if [ $? -ne 0 ]; then
     print_error "Failed to download $snorttar. Please check $logfile for details."
 	exit 1	
@@ -287,7 +295,7 @@ fi
 
 
 
-wget http://snort.org/dl/snort-current/$daqtar -O $daqtar &>> $logfile
+wget http://snort.org/downloads/snort/$daqtar -O $daqtar &>> $logfile
 if [ $? -ne 0 ]; then
     print_error "Failed to download $daqtar. Please check $logfile for details."
 	exit 1	
@@ -404,7 +412,7 @@ mkdir -p /usr/local/snort/lib/snort_dynamicrules
 #we wget the snort-rules page off  snort.org, do a lot of text manipulation from the html file downloaded, and set variables: two variables for attempting to downloading the VRT example snort.conf from labs.snort.org, and four variables for the version of snort to download rules for via pulledpork.
 print_status "Checking current rule releases on snort.org.."
 
-wget http://www.snort.org/snort-rules -O /tmp/snort-rules &>> $logfile
+wget http://www.snort.org -O /tmp/snort-rules &>> $logfile
 if [ $? -ne 0 ]; then
 	print_error "Failed to contact snort.org. Please check $logfile for details."
 	continue	
