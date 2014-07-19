@@ -105,56 +105,12 @@ fi
 rm base-1.4.5.tar.gz
 mv base-* base
 
+print_status "Resetting default site DocumentRoot to /var/www/base."
+sed -i 's/DocumentRoot \/var\/www/DocumentRoot \/var\/www\/base/' /etc/apache2/sites-available/*default*
+
 #BASE requires the /var/www/ directory to be owned by www-data
 print_status "Granting ownership of /var/www to www-data user and group."
 chown -R www-data:www-data /var/www
-
-########################################
-
-#These are virtual host settings. The default virtual host forces redirect of all traffic to https (SSL, port 443) to ensure console traffic is encrypted and secure. We then enable the new SSL site we made, and restart apache to start serving it.
-
-
-print_status "Configuring Virtual Host Settings for Base.."
-echo "#This default vhost config geneated by autosnort. To remove, run cp /etc/apache2/defaultsiteconfbak /etc/apache2/sites-available/default" > /etc/apache2/sites-available/default
-echo "#This VHOST exists as a catch, to redirect any requests made via HTTP to HTTPS." >> /etc/apache2/sites-available/default
-echo "<VirtualHost *:80>" >> /etc/apache2/sites-available/default
-echo "        DocumentRoot /var/www/base" >> /etc/apache2/sites-available/default
-echo "        #Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/default
-echo "        RewriteEngine On" >> /etc/apache2/sites-available/default
-echo "        RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/default
-echo "        RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/default
-echo "</VirtualHost>" >> /etc/apache2/sites-available/default
-
-echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/base-ssl
-echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/base-ssl
-echo "	#Turn on SSL. Most of the relevant settings are set in /etc/apache2/mods-available/ssl.conf" >> /etc/apache2/sites-available/base-ssl
-echo "	SSLEngine on" >> /etc/apache2/sites-available/base-ssl
-echo "" >> /etc/apache2/sites-available/base-ssl
-echo "	#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/base-ssl
-echo "	RewriteEngine On" >> /etc/apache2/sites-available/base-ssl
-echo "	RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/base-ssl
-echo "	RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/base-ssl
-echo "" >> /etc/apache2/sites-available/base-ssl
-echo "	#Now, we finally get to configuring our VHOST." >> /etc/apache2/sites-available/base-ssl
-echo "	ServerName base.localhost" >> /etc/apache2/sites-available/base-ssl
-echo "	DocumentRoot /var/www/base" >> /etc/apache2/sites-available/base-ssl
-echo "</VirtualHost>" >> /etc/apache2/sites-available/base-ssl
-
-a2ensite base-ssl &>> $base_logfile
-if [ $? -ne 0 ]; then
-    print_error "Failed to enable base-ssl virtual host. See $base_logfile for details."
-	exit 1	
-else
-    print_good "Successfully made virtual host changes."
-fi
-
-service apache2 restart &>> $base_logfile
-if [ $? -ne 0 ]; then
-    print_error "Failed to restart apache2. See $base_logfile for details."
-	exit 1	
-else
-    print_good "Successfully restarted apache2."
-fi
 
 print_notification "The log file for this interface installation is located at: $base_logfile"
 

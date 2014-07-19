@@ -23,7 +23,40 @@ cd /root;sudo bash autosnort-debian-mm-dd-yyyy.sh
 autosnort-Debian Release Notes
 ##############################
 
-Current Release: autosnort-debian-03-31-2014.sh
+Current Release: autosnort-debian-07-19-2014.sh
+
+Codename:REMEMBRANCE You left a lasting mark. Even still, I will never forget you.
+
+autosnort script changes:
+--If you elect to install a web server and mysql as a part of a web IDS console installation, the following changes are made:
+--- /etc/apache2/sites-available/default, /etc/apache2/sites-available/default-ssl, and /etc/apache2/mods-available/ssl.conf are all moved/backed up to /etc/apache2/. the default site is generated for each IDS web console installation, and a custom ssl site for each ids console is also generated, so the default files are moved to ensure they don't interfere. ssl.conf is moved in order to generate a new ssl.conf based off the qualys ssl scanner blog recommendations.
+--- mod_rewrite and mod_ssl are both enabled to ensure support and enforcement of all IDS console traffic over SSL.
+--- openssl generates a new private key and a new self-signed ssl certificate.
+
+snorby script changes:
+-- Determined that a few of the work-arounds that were required to install Snorby were no longer required, and the Snorby project never bothered telling anyone. Go figure. Installation is now a little bit faster and more streamlined, but it still takes the longest out of any web-based IDS console to install.
+
+snortreport script changes:
+--Managed to craft a series of sed expressions that remove all php short open and short echo tags once and for all. No need to turn on PHP's short open tag directive EVER AGAIN. And there was much rejoicing.
+
+all web interface scripts:
+--Made significant changes to the Virtual Host settings across all web interface installations. In order to fully support all web interfaces being served over SSL (HTTPS):
+---A Virtual Host on port 80 redirects all HTTP requests to HTTPS via mod_rewrite (enforced encryption)
+---All web interfaces had their virtual host moved to port 443 and should be perfectly compatible and fine with being served over SSL (https).
+---Don't forget: If you run a firewall on your host, I would recommend opening port 80 and port 443 on your INPUT chain.
+
+Bug Fixes:
+--Snort.org underwent a facelift. Just like with the autosnort-centOS script, the main script has been modified to where It can find the correct versions of snort, DAQ, and rule tarballs to download.
+-- Discovered a bug with RVM, had it reported, and got it fixed on the same day https://t.co/yiK8MdnZxi This bug resulted in a broken rvm.sh being dropped to /etc/profile.d, and therefore a broken RVM installation that caused the snorby installation script to explode in a fit of rage.
+
+Other things:
+--Noticed that the Snorby script fails catastrophically if rubygems.org is down or unresponsive. the snorby_install.log in /var/log that gets made will leave a pretty blatant error message. In my case it was "503 rubygems.org back end at capacity." was the only clue I would get that things went awry. That and the script not executing functions after the gem installation properly due to missing gems. Bottom line: if you see a 503 error message in the installation logs, the problem is with rubygems.org. This is the price you pay when you deal with the devil (Ruby)
+
+##################
+Previous Releases
+##################
+
+autosnort-debian-03-31-2014.sh
 
 So, this all started when a user notified me that gen-msg.map is no longer provided by rule tarballs, and as a result barnyard2 wouldn't start when installed by autosnort. I made a few changes to autosnort, so sit tight:
 
@@ -36,18 +69,11 @@ So, this all started when a user notified me that gen-msg.map is no longer provi
 --Shared Object rule stubs are now included in the snort.rules file; so_rules.rules is no longer generated, but the so_rules directory is still there. Pulled Pork seperates out all Shared Object rules and organized them by category. to find your Shared Object rules, you can use the expressions "GID:3" to search by category, or the expression "engine shared" to list all shared object rules in the snort.rules file.
 --Installed the necessary packages and made the necessary configuration changes to enable support for the NFQUEUE DAQ module; Autosnort Debian should now be capable of supporting inline mode operation via both AFPACKET and NFQUEUE.
 
-snorby script changes:
-
-
 bug fixes:
 --gen-msg.map is copied out of the /usr/src/$snortver/etc now (so the untarred directory of the version of snort the script downloads), since rule tarballs no longer contain gen-msg.map. Thanks to David Earp for notifying me of this issue.
 --Snort 2.9.6.0 has been the production release of snort for a while now, long enough for me to actually verify that the Shared Object rule generation works. spoilers: it sort-of, but not really worked. This has been fixed.
 ---The SO files would be put into the right place, but the rule stubs (SO rule headers) wouldn't be generated. Pulledpork actually executes snort to generate the SO rule stubs, but because snort would read the config, not find things where the config said they were, would summarily barf with no rule stubs. Fixed the script by generating some dummy files before pulled pork is ran, and placing files where pulled pork expects them.
 --Experienced a problem with rvm not downloading properly on Debian's wget because the certificate did not match the name of the site for rvm.io. As much as I detest --no-check-certificates (It's like I'm really using HTTP!). While this isn't a bug, it's more of an evil preventative action.
-
-##################
-Previous Releases
-##################
 
 autosnort-debian-02-08-2014.sh
 
@@ -85,7 +111,7 @@ snortreport-debian script changes:
 --Minor formatting changes.
 --Removed all "cat" commands for slightly more efficient shell script.
 
-BASE-ubuntu and Aanval-ubtu script changes
+BASE-debian and Aanval-debian script changes:
 --Very minor formatting changes
 --Ensured compatibility with new and old versions of Apache by making a very minor change the sed line that modifies DocumentRoot
 

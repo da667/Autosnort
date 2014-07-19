@@ -119,46 +119,14 @@ while true; do
 	fi
 done
 
+########################################
 
 print_status "Granting ownership of /var/www/aanval to www-data.."
 
 chown -R www-data:www-data /var/www/aanval
 
-########################################
-
-#These are virtual host settings. The default virtual host forces redirect of all traffic to https (SSL, port 443) to ensure console traffic is encrypted and secure. We then enable the new SSL site we made, and restart apache to start serving it.
-
-
-print_status "Configuring Virtual Host Settings for Aanval.."
-echo "#This default vhost config geneated by autosnort. To remove, run cp /etc/apache2/defaultsiteconfbak /etc/apache2/sites-available/default" > /etc/apache2/sites-available/default
-echo "#This VHOST exists as a catch, to redirect any requests made via HTTP to HTTPS." >> /etc/apache2/sites-available/default
-echo "<VirtualHost *:80>" >> /etc/apache2/sites-available/default
-echo "        DocumentRoot /var/www/aanval" >> /etc/apache2/sites-available/default
-echo "        #Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/default
-echo "        RewriteEngine On" >> /etc/apache2/sites-available/default
-echo "        RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/default
-echo "        RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/default
-echo "</VirtualHost>" >> /etc/apache2/sites-available/default
-
-echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/aanval-ssl
-echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/aanval-ssl
-echo "	#Turn on SSL. Most of the relevant settings are set in /etc/apache2/mods-available/ssl.conf" >> /etc/apache2/sites-available/aanval-ssl
-echo "	SSLEngine on" >> /etc/apache2/sites-available/aanval-ssl
-echo "" >> /etc/apache2/sites-available/aanval-ssl
-echo "	#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/aanval-ssl
-echo "	RewriteEngine On" >> /etc/apache2/sites-available/aanval-ssl
-echo "	RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/aanval-ssl
-echo "	RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/aanval-ssl
-echo "" >> /etc/apache2/sites-available/aanval-ssl
-echo "	#Now, we finally get to configuring our VHOST." >> /etc/apache2/sites-available/aanval-ssl
-echo "	ServerName base.localhost" >> /etc/apache2/sites-available/aanval-ssl
-echo "	DocumentRoot /var/www/aanval" >> /etc/apache2/sites-available/aanval-ssl
-echo "</VirtualHost>" >> /etc/apache2/sites-available/aanval-ssl
-
-########################################
-
-#We start the background processors for the Aanval web interface, and ask the user of they want an entry in rc.local to ensure the background processors are automatically started on reboot.
-#TODO: make an init script.
+print_status "Resetting DocumentRoot to /var/www/aanval"
+sed -i 's/DocumentRoot \/var\/www/DocumentRoot \/var\/www\/aanval/' /etc/apache2/sites-available/*default*
 
 print_status "Starting background processors for Aanval web interface.."
 cd /var/www/aanval/apps
@@ -169,6 +137,8 @@ if [ $? != 0 ];then
 else
 	print_good "Successfully started background processors."
 fi
+
+########################################
 
 print_notification "The background processors need to run in order to export events fro the snort database to aanval's database."
 while true; do
@@ -196,27 +166,6 @@ while true; do
 		;;
 	esac
 done
-
-########################################
-
-#enable the base-ssl vhost we made, and restart apache to serve it.
-
-a2ensite aanval-ssl &>> $aanval_logfile
-if [ $? -ne 0 ]; then
-    print_error "Failed to enable base-ssl virtual host. See $aanval_logfile for details."
-	exit 1	
-else
-    print_good "Successfully made virtual host changes."
-fi
-
-service apache2 restart &>> $aanval_logfile
-if [ $? -ne 0 ]; then
-    print_error "Failed to restart apache2. See $aanval_logfile for details."
-	exit 1	
-else
-    print_good "Successfully restarted apache2."
-fi
-
 
 print_notification "The log file for this interface installation is located at: $aanval_logfile"
 
