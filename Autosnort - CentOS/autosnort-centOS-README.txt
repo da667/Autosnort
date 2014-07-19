@@ -29,11 +29,11 @@ Codename:Remembrance -- You lived a full life. Even so, I will never forget you.
 
 -autosnort-centOS script changes:
 
---If you elect to install a web server and mysql as a part of a web installation the following changes are made:
+--If you elect to install a web server and mysql as a part of a web IDS console installation, the following changes are made:
 ---httpd.conf is backed up to /etc/httpd
 ---ssl.conf is moved/backed up to /etc/httpd I found that ssl.conf will interfere with https virtual hosts if not moved.
 ---mod_ssl is now installed with httpd
----openssl is called and generates a private and a self-signed certificate as a part of the web server and database installation.
+---openssl is called, generates a private key, and a self-signed certificate as a part of the web server and database installation.
 
 
 snorby script changes:
@@ -51,6 +51,10 @@ all web interface scripts:
 Bug Fixes:
 --Snort.org underwent a face lift recently. A lot of URLs for file downloads and stuff were changed and cleaned up. Fixed autosnort. The checks for the latest version of snort and daq, as well as rule tarballs should be working again and compatible with the new snort.org
 --The EPEL repo detection and download from the fedora project was broken. Fixed.
+
+Other Notes:
+--Noticed that the Snorby script fails catastrophically if rubygems.org is down or unresponsive. the snorby_install.log in /var/log that gets made will leave a pretty blatant error message. In my case it was "503 rubygems.org back end at capacity." was the only clue I would get that things went awry. That and the script not executing functions after the gem installation properly due to missing gems. Bottom line: if you see a 503 error message in the installation logs, the problem is with rubygems.org. This is the price you pay when you deal with the devil (Ruby)
+
 
 ##################
 Previous Releases
