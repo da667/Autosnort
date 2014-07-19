@@ -219,10 +219,8 @@ mv /etc/httpd/conf.d/ssl.conf /etc/httpd/sslconf.bak
 
 print_good "Passenger Module config and Snorby Virtual Host data added to /etc/httpd/conf/httpd.conf"
 
-#The below portion are the final steps. The first thing we do is make a copy of the Gemfile.lock, and using grep -v, remove all references to psych_shield in the Gemfile.lock file. Reason for this is that bundler will bomb out because it sees an inconsistency with the Gemfile.lock and Gemfile. Grepping out psych_shield fixes that.
-
 #The rest is to perform the final installation steps for snorby use bundler to grab the remaining gems needed and configure everything, then rake to make it run. The a2dis/ensite are to disable the default apache site and enable snorby, setting it as the default site.
-#TODO:https
+
 
 print_status "Running bundler.."
 
