@@ -181,9 +181,9 @@ print_good "Apache successfully configured to use passenger."
 
 ########################################
 
-#Set up our mod_rewrite site as the default site to force users to go over SSL.
+#These are virtual host settings. The default virtual host forces redirect of all traffic to https (SSL, port 443) to ensure console traffic is encrypted and secure.
 
-print_status "Configuring Virtual Host Settings for Snorby.."
+print_status "Configuring apache to point to snorby's DocumentRoot as the default site (over SSL).."
 
 echo "#This default vhost config geneated by autosnort. To remove, run cp /etc/apache2/defaultsiteconfbak /etc/apache2/sites-available/default" > /etc/apache2/sites-available/default
 echo "#This VHOST exists as a catch, to redirect any requests made via HTTP to HTTPS." >> /etc/apache2/sites-available/default
@@ -194,8 +194,6 @@ echo "        RewriteEngine On" >> /etc/apache2/sites-available/default
 echo "        RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/default
 echo "        RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/default
 echo "</VirtualHost>" >> /etc/apache2/sites-available/default
-
-#Virtual Host for Snorby. Now with SSL.
 
 echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/snorby-ssl
 echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/snorby-ssl
@@ -210,13 +208,15 @@ echo "" >> /etc/apache2/sites-available/snorby-ssl
 echo "	#Now, we finally get to configuring our VHOST." >> /etc/apache2/sites-available/snorby-ssl
 echo "	ServerName snorby.localhost" >> /etc/apache2/sites-available/snorby-ssl
 echo "	DocumentRoot /var/www/snorby/public" >> /etc/apache2/sites-available/snorby-ssl
-echo "     <Directory /var/www/snorby/public>" >> /etc/apache2/sites-available/snorby.conf
-echo "          # This relaxes Apache security settings." >> /etc/apache2/sites-available/snorby.conf
-echo "          AllowOverride all" >> /etc/apache2/sites-available/snorby.conf
-echo "          # MultiViews must be turned off." >> /etc/apache2/sites-available/snorby.conf
-echo "          Options -MultiViews" >> /etc/apache2/sites-available/snorby.conf
-echo "     </Directory>" >> /etc/apache2/sites-available/snorby.conf
+echo "     <Directory /var/www/snorby/public>" >> /etc/apache2/sites-available/snorby-ssl
+echo "          # This relaxes Apache security settings." >> /etc/apache2/sites-available/snorby-ssl
+echo "          AllowOverride all" >> /etc/apache2/sites-available/snorby-ssl
+echo "          # MultiViews must be turned off." >> /etc/apache2/sites-available/snorby-ssl
+echo "          Options -MultiViews" >> /etc/apache2/sites-available/snorby-ssl
+echo "     </Directory>" >> /etc/apache2/sites-available/snorby-ssl
 echo "</VirtualHost>" >> /etc/apache2/sites-available/snorby-ssl
+
+print_good "Snorby's DocumentRoot set as the default site."
 
 ########################################
 
@@ -247,7 +247,7 @@ fi
 
 ########################################
 
-#The commands below are to drop privileges and secure key config files: We want to have the snort user manage the snorby database. This is done for security purposes. Root database creds should not be in a world-readable (by default) file.
+#The commands below are to drop privileges: We want to have the snort user manage the snorby database. This is done for security purposes. I'm not comfortable with the root database user's creds being in a world-readable file.
 
 print_status "Giving permission to snort database user to manage the snorby database (dropping privs).."
 
@@ -259,7 +259,7 @@ sed -i 's/username: root/username: snort/' /var/www/snorby/config/database.yml
 sed -i 's/password: '$root_pass_1'/password: '$MYSQL_PASS_1'/' /var/www/snorby/config/database.yml
 sed -i 's/dbname=snort/dbname=snorby/' /usr/local/snort/etc/barnyard2.conf
 
-#give www-data access to snorby's files
+#give www-data access to snorby's files, enable the snort site, disable the default, restart apache.
 
 print_status "Giving ownership of /var/www/snorby to www-data user and group."
 
@@ -270,10 +270,6 @@ chown -R www-data:www-data /var/www/snorby/
 print_status "Resetting permissions on database.yml and snorby_config.yml.."
 
 chmod 400 /var/www/snorby/config/database.yml /var/www/snorby/config/snorby_config.yml
-
-########################################
-
-#Enabling the snorby SSL site, and restarting apache to serve it.
 
 a2ensite snorby-ssl &>> $snorby_logfile
 if [ $? -ne 0 ]; then
