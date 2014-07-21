@@ -153,7 +153,7 @@ echo "	RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/aanval-ssl.conf
 echo "	RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/aanval-ssl.conf
 echo "" >> /etc/apache2/sites-available/aanval-ssl.conf
 echo "	#Now, we finally get to configuring our VHOST." >> /etc/apache2/sites-available/aanval-ssl.conf
-echo "	ServerName base.localhost" >> /etc/apache2/sites-available/aanval-ssl.conf
+echo "	ServerName aanval.localhost" >> /etc/apache2/sites-available/aanval-ssl.conf
 echo "	DocumentRoot /var/www/aanval" >> /etc/apache2/sites-available/aanval-ssl.conf
 echo "</VirtualHost>" >> /etc/apache2/sites-available/aanval-ssl.conf
 

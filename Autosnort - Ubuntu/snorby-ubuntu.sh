@@ -302,9 +302,4 @@ fi
 
 print_notification "The log file for the snorby installation is located at: $snorby_logfile"
 
-#SSL config:
-#a2enmod ssl
-#a2enmod rewrite
-#more to come here...
-
 exit 0
