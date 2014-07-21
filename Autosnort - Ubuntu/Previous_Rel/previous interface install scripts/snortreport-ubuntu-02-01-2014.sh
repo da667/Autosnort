@@ -125,9 +125,9 @@ print_status "Fixing short open tags.."
 cd /var/www/snortreport
 
 for s_open_file in `ls -1 *.php`; do 
-	sed -i 's#<?#<?php#g' $s_open_file
-	sed -i 's#<?phpphp#<?php#g' $s_open_file
-	sed -i 's#<?php=#<?php echo #g' $s_open_file
+	sed -i 's/<?/<?php/g' $s_open_file
+	sed -i 's/<?phpphp/<?php/g' $s_open_file
+	sed -i 's/<?php=/<?=/g' $s_open_file
 done
 
 print_good "Short open tags fixed."
@@ -145,64 +145,8 @@ chown -R www-data:www-data /var/www/jpgraph
 
 print_good "File permissions reset."
 
-########################################
-
-#These are virtual host settings. The default virtual host forces redirect of all traffic to https (SSL, port 443) to ensure console traffic is encrypted and secure. We then enable the new SSL site we made, and restart apache to start serving it.
-
-print_status "Configuring Virtual Host Settings for Snort Report..."
-
-echo "#This default vhost config geneated by autosnort. To remove, run cp /etc/apache2/defaultsiteconfbak /etc/apache2/sites-available/000-default.conf" > /etc/apache2/sites-available/000-default.conf
-echo "#This VHOST exists as a catch, to redirect any requests made via HTTP to HTTPS." >> /etc/apache2/sites-available/000-default.conf
-echo "<VirtualHost *:80>" >> /etc/apache2/sites-available/000-default.conf
-echo "        DocumentRoot /var/www/snortreport" >> /etc/apache2/sites-available/000-default.conf
-echo "        #Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/000-default.conf
-echo "        RewriteEngine On" >> /etc/apache2/sites-available/000-default.conf
-echo "        RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/000-default.conf
-echo "        RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/000-default.conf
-echo "</VirtualHost>" >> /etc/apache2/sites-available/000-default.conf
-
-echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/snortreport-ssl.conf
-echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/snortreport-ssl.conf
-echo "	#Turn on SSL. Most of the relevant settings are set in /etc/apache2/mods-available/ssl.conf" >> /etc/apache2/sites-available/snortreport-ssl.conf
-echo "	SSLEngine on" >> /etc/apache2/sites-available/snortreport-ssl.conf
-echo "" >> /etc/apache2/sites-available/snortreport-ssl.conf
-echo "	#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/snortreport-ssl.conf
-echo "	RewriteEngine On" >> /etc/apache2/sites-available/snortreport-ssl.conf
-echo "	RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/snortreport-ssl.conf
-echo "	RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/snortreport-ssl.conf
-echo "" >> /etc/apache2/sites-available/snortreport-ssl.conf
-echo "	#Now, we finally get to configuring our VHOST." >> /etc/apache2/sites-available/snortreport-ssl.conf
-echo "	ServerName snortreport.localhost" >> /etc/apache2/sites-available/snortreport-ssl.conf
-echo "	DocumentRoot /var/www/snortreport" >> /etc/apache2/sites-available/snortreport-ssl.conf
-echo "</VirtualHost>" >> /etc/apache2/sites-available/snortreport-ssl.conf
-
-########################################
-
-#enable our vhost and restart apache to serve them.
-
-a2ensite 000-default.conf &>> $sreport_logfile
-if [ $? -ne 0 ]; then
-    print_error "Failed to enable default virtual host. See $sreport_logfile for details."
-	exit 1	
-else
-    print_good "Successfully made virtual host changes."
-fi
-
-a2ensite snortreport-ssl.conf &>> $sreport_logfile
-if [ $? -ne 0 ]; then
-    print_error "Failed to enable snortreport-ssl virtual host. See $sreport_logfile for details."
-	exit 1	
-else
-    print_good "Successfully made virtual host changes."
-fi
-
-service apache2 restart &>> $sreport_logfile
-if [ $? -ne 0 ]; then
-    print_error "Failed to restart apache2. See $sreport_logfile for details."
-	exit 1	
-else
-    print_good "Successfully restarted apache2."
-fi
+print_status "Resetting default site DocumentRoot to /var/www/snortreport.."
+sed -i 's/DocumentRoot \/var\/www/DocumentRoot \/var\/www\/snortreport/' /etc/apache2/sites-available/*default*
 
 print_notification "The log file for this interface installation is located at: $sreport_logfile"
 

@@ -90,10 +90,10 @@ cp /usr/src/$snortver/etc/gen-msg.map /usr/local/snort/etc
 
 print_status "OS Version Check.."
 release=`lsb_release -r|awk '{print $2}'`
-if [[ $release == "12."* || $release == "13."* ]]; then
+if [[ $release == "12."* || $release == "14."* ]]; then
 	print_good "OS is Ubuntu. Good to go."
 else
-    print_notification "This is not Ubuntu 12.x or 13.x, this autosnort script has NOT been tested on other platforms."
+    print_notification "This is not Ubuntu 12.x or 14.x, this autosnort script has NOT been tested on other platforms."
 	print_notification "If you choose to continue, you continue at your own risk!(Please report your successes or failures!)"
     while true; do
 		read -p "Continue? (y/n)" warncheck

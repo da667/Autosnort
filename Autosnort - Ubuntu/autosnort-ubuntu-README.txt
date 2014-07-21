@@ -29,11 +29,44 @@ cd /root;sudo bash autosnort-ubuntu-mm-dd-yyyy.sh
 autosnort-Ubuntu Release Notes
 ##############################
 
-Current Release: autosnort-ubuntu-03-31-2014.sh
+Current Release:  autosnort-ubuntun-07-21-2014.sh
+
+Codename: REMEMBRANCE I'll see you soon, I promise.
+
+autosnort script changes:
+--Finally have official, tested support for Ubuntu 14.04!
+--If you elect to install a web server and mysql as a part of a web IDS console installation, the following changes are made:
+--- /etc/apache2/sites-available/000-default.conf, /etc/apache2/sites-available/default-ssl.conf, and /etc/apache2/mods-available/ssl.conf are all moved/backed up to /etc/apache2/. A new default site virtual host and custom ssl site virtual host for each ids console is also generated. ssl.conf is moved in order to generate a new ssl.conf based off the qualys ssl scanner blog recommendations.
+--- mod_rewrite and mod_ssl are both enabled to ensure support and enforcement of all IDS console traffic over SSL.
+--- openssl generates a new private key and a new self-signed ssl certificate.
+
+snorby script changes:
+-- Determined that a few of the work-arounds that were required to install Snorby were no longer required, and the Snorby project never bothered telling anyone. Go figure. Installation is now a little bit faster and more streamlined, but it still takes the longest out of any web-based IDS console to install.
+
+Bug Fixes:
+--Snort.org underwent a facelift. Just like with the autosnort-centOS and debian scripts, the main script has been modified to where It can find the correct versions of snort, DAQ, and rule tarballs to download.
+
+
+all web interface scripts:
+--Made significant changes to the Virtual Host settings across all web interface installations. In order to fully support all web interfaces being served over SSL (HTTPS):
+---A Virtual Host on port 80 redirects all HTTP requests to HTTPS via mod_rewrite (enforced encryption)
+---All web interfaces had their virtual host moved to port 443 and should be perfectly compatible and fine with being served over SSL (https).
+---Don't forget: If you run a firewall on your host, I would recommend opening port 80 and port 443 on your INPUT chain.
+--Ubuntu 14.04 runs a version of apache that is VERY strict on virtual host files in /etc/apache2/sites-available. They MUST end in the extension ".conf" to be considered a valid virtual host file for a2ensite and a2dissite. To ensure compatibility with ubuntu 12.04 (doesn't care about the file extention) and 14.04 (strict file extension check), all web interface installs have a 000-default.conf and [interface_name]-ssl.conf virtual host file in /etc/apache2/sites-available that replace the default site and are enabled by the IDS console installation script.
+
+other notes:
+--Noticed that the Snorby script fails catastrophically if rubygems.org is down or unresponsive. the snorby_install.log in /var/log that gets made will leave a pretty blatant error message. In my case it was "503 rubygems.org back end at capacity." was the only clue I would get that things went awry. That and the script not executing functions after the gem installation properly due to missing gems. Bottom line: if you see a 503 error message in the installation logs, the problem is with rubygems.org. This is the price you pay when you deal with the devil (Ruby)
+
+
+##################
+Previous Releases
+##################
+
+autosnort-ubuntu-03-31-2014.sh
 
 So, this all started when a user notified me that gen-msg.map is no longer provided by rule tarballs, and as a result barnyard2 wouldn't start when installed by autosnort. I made a few changes to autosnort, so sit tight:
 
--autosnort-debian script changes:
+-autosnort-ubuntu script changes:
 
 --removed the choice to install a VRT rule tarball from the filesystem. There are a few reasons for this:
 1) the sid-msg.map included in the rule tarball doesn't contain everything needed. To generate a good, valid sid-msg.map the user would need to pull the perl script from oinkmaster to do this, or download pulled pork to do this for them anyway.
@@ -50,10 +83,6 @@ bug fixes:
 --gen-msg.map is copied out of the /usr/src/$snortver/etc now (so the untarred directory of the version of snort the script downloads), since rule tarballs no longer contain gen-msg.map. Thanks to David Earp for notifying me of this issue.
 --Snort 2.9.6.0 has been the production release of snort for a while now, long enough for me to actually verify that the Shared Object rule generation works. spoilers: it sort-of, but not really worked. This has been fixed.
 ---The SO files would be put into the right place, but the rule stubs (SO rule headers) wouldn't be generated. Pulledpork actually executes snort to generate the SO rule stubs, but because snort would read the config, not find things where the config said they were, would summarily barf with no rule stubs. Fixed the script by generating some dummy files before pulled pork is ran, and placing files where pulled pork expects them.
-
-##################
-Previous Releases
-##################
 
 autosnort-ubuntu-02-01-2014.sh
 
@@ -91,7 +120,7 @@ snortreport-ubuntu script changes:
 --Minor formatting changes.
 --Removed all "cat" commands for slightly more efficient shell script.
 
-BASE-ubuntu and Aanval-ubtu script changes
+BASE-ubuntu and Aanval-ubuntu script changes
 --Very minor formatting changes
 --Ensured compatibility with Ubuntu 12.X and 13.X versions by making a very minor change the sed line that modifies DocumentRoot
 

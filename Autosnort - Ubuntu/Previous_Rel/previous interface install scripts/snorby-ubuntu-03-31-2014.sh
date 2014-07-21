@@ -180,56 +180,55 @@ print_good "Apache successfully configured to use passenger."
 
 ########################################
 
-#These are virtual host settings. The default virtual host forces redirect of all traffic to https (SSL, port 443) to ensure console traffic is encrypted and secure.
+#add to sites-avaiable/snorby.conf
 
-print_status "Configuring apache to point to snorby's DocumentRoot as the default site (over SSL).."
+print_status "Configuring apache to point to snorby's DocumentRoot as the default site.."
 
-echo "#This default vhost config geneated by autosnort. To remove, run cp /etc/apache2/defaultsiteconfbak /etc/apache2/sites-available/000-default.conf" > /etc/apache2/sites-available/000-default.conf
-echo "#This VHOST exists as a catch, to redirect any requests made via HTTP to HTTPS." >> /etc/apache2/sites-available/000-default.conf
-echo "<VirtualHost *:80>" >> /etc/apache2/sites-available/000-default.conf
-echo "        DocumentRoot /var/www/snorby/public" >> /etc/apache2/sites-available/000-default.conf
-echo "        #Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/000-default.conf
-echo "        RewriteEngine On" >> /etc/apache2/sites-available/000-default.conf
-echo "        RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/000-default.conf
-echo "        RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/000-default.conf
-echo "</VirtualHost>" >> /etc/apache2/sites-available/000-default.conf
-
-echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/snorby-ssl.conf
-echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "	#Turn on SSL. Most of the relevant settings are set in /etc/apache2/mods-available/ssl.conf" >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "	SSLEngine on" >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "" >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "	#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "	RewriteEngine On" >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "	RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "	RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "" >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "	#Now, we finally get to configuring our VHOST." >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "	ServerName snorby.localhost" >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "	DocumentRoot /var/www/snorby/public" >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "     <Directory /var/www/snorby/public>" >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "          # This relaxes Apache security settings." >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "          AllowOverride all" >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "          # MultiViews must be turned off." >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "          Options -MultiViews" >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "     </Directory>" >> /etc/apache2/sites-available/snorby-ssl.conf
-echo "</VirtualHost>" >> /etc/apache2/sites-available/snorby-ssl.conf
+echo "<VirtualHost *:80>" >> /etc/apache2/sites-available/snorby.conf
+echo "     ServerName snorby.localhost" >> /etc/apache2/sites-available/snorby.conf
+echo "     # !!! Be sure to point DocumentRoot to 'public'!" >> /etc/apache2/sites-available/snorby.conf
+echo "     DocumentRoot /var/www/snorby/public" >> /etc/apache2/sites-available/snorby.conf
+echo "     <Directory /var/www/snorby/public>" >> /etc/apache2/sites-available/snorby.conf
+echo "          # This relaxes Apache security settings." >> /etc/apache2/sites-available/snorby.conf
+echo "          AllowOverride all" >> /etc/apache2/sites-available/snorby.conf
+echo "          # MultiViews must be turned off." >> /etc/apache2/sites-available/snorby.conf
+echo "          Options -MultiViews" >> /etc/apache2/sites-available/snorby.conf
+echo "     </Directory>" >> /etc/apache2/sites-available/snorby.conf
+echo "</VirtualHost>" >> /etc/apache2/sites-available/snorby.conf
 
 print_good "Snorby's DocumentRoot set as the default site."
 
 ########################################
 
-#The below portion are the final steps. We run bundler and rake to prep Snorby for use.
+#The below portion are the final steps. The first thing we do is make a copy of the Gemfile.lock, and using grep -v, remove all references to psych_shield in the Gemfile.lock file. Reason for this is that bundler will bomb out because it sees an inconsistency with the Gemfile.lock and Gemfile. Grepping out psych_shield fixes that.
 
-print_status "Running bundler.."
+
+print_status "Running bundler (1 of 2).."
 
 cd /var/www/snorby
-bundle install --deployment &>> $snorby_logfile
+
+#Ran into issues with psych_shield causing bundler to bail out."
+
+cp Gemfile.lock Gemfile.lock.bak
+grep -v "psych_shield" Gemfile.lock.bak > Gemfile.lock
+
+#Running bundle install with --no-deployment option. Direct result of issue #323 on snorby github. This was the work-around that I found to work. Afterwards, we re-run bundle with --deployment, and everything _appears_ to work. Did I mention how much I don't understand and hate ruby on rails?
+
+bundle install --no-deployment &>> $snorby_logfile
 if [ $? -ne 0 ]; then
-	print_error "Bundler failed to run. Please see $snorby_logfile for more details."
+	print_error "Bundler (1 of 2) failed to run. Please see $snorby_logfile for more details."
 	exit 1
 else
-	print_good "Bundler  completed."
+	print_good "Bundler (1 of 2) completed."
+fi
+
+print_status "Running bundler (2 of 2).."
+bundle install --deployment &>> $snorby_logfile
+if [ $? -ne 0 ]; then
+	print_error "Bundler (2 of 2) failed to run. Please see $snorby_logfile for more details."
+	exit 1
+else
+	print_good "Bundler (2 of 2) completed."
 fi
 
 #TODO:`which pdfkit` --install-wkhtmltopdf 
@@ -270,27 +269,25 @@ print_status "Resetting permissions on database.yml and snorby_config.yml.."
 
 chmod 400 /var/www/snorby/config/database.yml /var/www/snorby/config/snorby_config.yml
 
-########################################
+#Use to use a2ensite and a2dissite, but as of apache 2.4, that tool has become VERY picky about only enabling/disabling files ending in ".conf".
+#Per the man pages, these tools just manage symlinks to /etc/apache2/sites-enabled directory. Those symlinks can be created and removed manually.
+#The files still have to end in ".conf" however, to maintain compatibility with apache 2.4 (Ubuntu 13.10) and older versions of apache (Ubuntu 12.X)
 
-#enable our vhost and restart apache to serve them.
-
-a2ensite 000-default.conf &>> $snorby_logfile
+rm /etc/apache2/sites-enabled/*default*
 if [ $? -ne 0 ]; then
-    print_error "Failed to enable default virtual host. See $snorby_logfile for details."
-	exit 1	
+	print_error "Failed to disable default site. Please see $snorby_logfile for more details."
+	exit 1
 else
-    print_good "Successfully made virtual host changes."
+	print_good "Default site disabled."
 fi
 
-a2ensite snorby-ssl.conf &>> $snorby_logfile
+ln -s /etc/apache2/sites-available/snorby.conf /etc/apache2/sites-enabled/snorby.conf
 if [ $? -ne 0 ]; then
-    print_error "Failed to enable snorby-ssl virtual host. See $snorby_logfile for details."
-	exit 1	
+	print_error "Failed to enable Snorby site. Please see $snorby_logfile for more details."
+	exit 1
 else
-    print_good "Successfully made virtual host changes."
+	print_good "Snorby site enabled and set to default."
 fi
-
-
 
 service apache2 restart &>> $snorby_logfile
 if [ $? -ne 0 ]; then
