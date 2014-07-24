@@ -16,11 +16,11 @@ If you feel that this script is not as robust as it can be, is missing key featu
 
 Autosnort will:
 
-1. Install the latest versions of Snort, Barnyard2, DAQ (Data Acquisition) Libraries as well as any other required repositories and pre-reqs for install all of Snort's components.
+1. Install the latest versions of Snort, Barnyard2, DAQ (Data Acquisition) Libraries as well as any other required repositories and pre-reqs for all of Snort's components.
 
-2. Automatically downloads pulled pork and uses it to pull down the latest available rules for your version of Snort, so long as you have a valid Oink Code -- Doesn't matter if it's a registered user or VRT subscription Oink Code.
+2. Automatically downloads pulled pork and uses it to pull down the latest available rules for your version of Snort, so long as you have a valid Oink Code -- Doesn't matter if it's a registered user or VRT subscription Oink Code. Don't have or know what an oink code is? Visit snort.org, register on their website and login. There's an option to display your oink code once you log in.
 
-3. Gives the user a choice between a variety of IDS event console installation choices. Autosnort handles installation of pre-req packages, file configuration, as well as configuring apache to serve Web-Based IDS event consoles over HTTPS. You may choose among the following:
+3. Gives the user a choice between a variety of IDS event console installation choices. Autosnort handles installation of pre-req packages for the console, configuration files, as well as configuring Apache to serve Web-Based IDS event consoles over HTTPS. You may choose among the following:
 
 --Symmetrix Technologies' SnortReport web interface
 --Threat Stack's Snorby web interface
@@ -37,7 +37,7 @@ Requirements:
 
 2. Root/sudo access -- several system-wide changes are made with Autosnort. as such, root privileges are required.
 
-3. A minimum of two network interfaces is recommended. Autosnort dedicates one interface solely to sniffing traffic. This interface will NOT respond to any service requests at all. As such, a second physical interface is needed to remotely administer the sensor. If you cannot acquire a second network interface card, simply edit /etc/rc.local and remove the "-noarp" option from the ifconfig command in that file.
+3. A minimum of two network interfaces is recommended. Autosnort dedicates one interface solely to sniffing traffic. This interface will NOT respond to any service requests at all. As such, a second physical interface is needed to remotely administer the sensor. If you cannot acquire a second network interface card, simply edit /etc/rc.local and remove the "-noarp" option from the ifconfig command in that file. This isn't recommended, but it'll do. Get a second network card!
 
 4.SSH/Secure remote access to the system for remote system administration is very highly recommended, but not absolutely necessary, if you have console access.
 
@@ -49,15 +49,17 @@ Here are the instructions to run the Autosnort:
 
 3. run the Autosnort-[os]-[date].sh script as the root user [e.g. as root, type "bash /root/Autosnort-[os]-[date].sh" or "cd /root && chmod u+x Autosnort-[os]-[date].sh && ./Autosnort-[os]-[date].sh" or run either of the following via sudo...]
 
-4. There are a series of prompts that the script will ask during execution. It should be very straight forward what the script is asking for (e.g. mysql password, oink code, etc.). Simply answer the questions as they come, and the script handles the rest.
+4. There are a series of prompts that the script will ask during execution. It should be very straight-forward what the script is asking for (e.g. mysql password, oink code, etc.). Simply answer the questions as they come, and the script handles the rest.
 
-5. The script gives you the option of rebooting your system after the installation is complete. In some cases it's necessary for some web interface components to register or work correctly. In all cases I highly recommend rebooting your system. Upon reboot snort, barnyard, and the interface of your choice should be running flawlessly.
+5. The script gives you the option of rebooting your system after the installation is complete. In some cases it's necessary for some web interface components to register or work correctly. In all cases I highly recommend rebooting your system, especially if system updates downloaded and made a new kernel available for your system. When the system has rebooted, snort, barnyard, and the interface of your choice should be running flawlessly.
 
-snort is installed under: /usr/local/snort
+snort is installed under: /usr/local/snort/
 
 barnyard2 is installed under: /usr/local/bin
 
-pulledpork (if used) is installed under /usr/src
+pulledpork is installed under: /usr/src
+
+snort.conf and barnyard2.conf are located under: /usr/local/snort/etc
 
 web interfaces are installed under: /var/www (ubuntu, debian) or /var/www/html (centOS/RHEL)
 
