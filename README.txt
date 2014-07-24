@@ -5,7 +5,7 @@ twitter: @da_667
 email: deusexmachina667 [at] gmail [dot] com
 
 
-Autosnort is a series of bash shell script designed to install a fully functional, fully updated stand-alone snort sensor with an IDS event review console of your choice, on a variety of Linux distributions. The script is very meticulously commented in order for users to fully understand all the changes the script performs on a given system. That way if a user wants to make their own customizations, or gain a better understanding of the install process, that information is present.
+Autosnort is a series of bash shell scripts designed to install a fully functional, fully updated stand-alone snort sensor with an IDS event review console of your choice, on a variety of Linux distributions. The script is very meticulously commented in order for users to fully understand all the changes the script performs on a given system. That way if a user wants to make their own customizations, or gain a better understanding of the install process, that information is present.
 
 I chose to write Autosnort as an alternative to other IDS solutions such as security onion, insta-snorby, etc. as a way for me to learn shell scripting a bit better, while granting snort users of any proficiency the capability to install the latest and greatest version of snort and its components as soon as they become available with as little muss and fuss as possible -- with only the interfaces or features they desired, on an operating system they want to use. As it stands right now, Autosnort supports Ubuntu 12.04+ (and its derivatives), Debian (6+ and it's derivatives), and CentOS (6+ and it's derivatives [including RHEL]), with support for additional operating systems to be added as requested.
 
