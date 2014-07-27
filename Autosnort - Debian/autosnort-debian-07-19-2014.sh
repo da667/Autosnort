@@ -469,7 +469,7 @@ useradd -g snort snort -s /bin/false
 chown snort:snort /var/log/snort
 
 ########################################
-#This block if code gets very very hairy, very very fast.
+#This block of code gets very very hairy, very very fast.
 #1. Setup necessary directory structure for snort
 #2. Determine latest the last 4 versions of snort tarballs, and last 2 snort releases
 #3. Download a reference snort.conf from labs.snort.org for the current (if available) release or snort, or the one prior
