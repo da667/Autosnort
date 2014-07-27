@@ -227,10 +227,10 @@ print_status "Running bundler.."
 cd /var/www/snorby
 bundle install --deployment &>> $snorby_logfile
 if [ $? -ne 0 ]; then
-	print_error "Bundler (2 of 2) failed to run. Please see $snorby_logfile for more details."
+	print_error "Bundler failed to run. Please see $snorby_logfile for more details."
 	exit 1
 else
-	print_good "Bundler (2 of 2) completed."
+	print_good "Bundler completed."
 fi
 
 #TODO:`which pdfkit` --install-wkhtmltopdf 
