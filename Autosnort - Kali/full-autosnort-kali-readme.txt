@@ -39,6 +39,21 @@ Read through these files (if they exist) for errors. If you do not understand wh
 ##############################
 full-autosnort-kali Release Notes
 ##############################
+Current Release: full-autosnort-kali-08-25-2014
+
+killing bugs and other things.
+
+Bug Fixes:
+
+- wget to snort.org would NOT work properly for some unknown reason. Attempts to wget snort.org would result in a 302 redirect to 127.0.0.1. Escalated to snort.org and snort-users mailing list. Ended up discovering that changing the URL from snort.org to www.snort.org resolves this issue handily, and is the primary reason for this script update.
+
+Thank you to @JakeKing and @Snauzage for your patience and notification regarding the issue
+as well as c0deMike and darkshade9 on github for pointing out the issue. I appreciate all reports on issues and aim to please my users as best I can.
+
+##################
+Previous Releases
+##################
+full-autosnort-kali-07-27-2014
 
 Codename:FULL AUTO
 
@@ -46,7 +61,6 @@ This is an initial release for full-autosnort. As it is with most things, pentes
 
 -This is the initial release for full-autosnort-kali, as well as the auto scripts for IDS console installation. Please report ANY problems!
 
-##############################
 
 as always, I can be contacted via twitter:
 @da_667

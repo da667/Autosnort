@@ -23,7 +23,21 @@ cd /root;sudo bash autosnort-debian-mm-dd-yyyy.sh
 autosnort-Debian Release Notes
 ##############################
 
-Current Release: autosnort-debian-07-19-2014.sh
+Current Release: autosnort-debian-08-25-2014
+
+annoying show-stopping bugs get squashed..
+
+Bug Fixes:
+
+- wget to snort.org would NOT work properly for some unknown reason. Attempts to wget snort.org would result in a 302 redirect to 127.0.0.1. Escalated to snort.org and snort-users mailing list. Ended up discovering that changing the URL from snort.org to www.snort.org resolves this issue handily, and is the primary reason for this script update.
+
+Thank you to @JakeKing and @Snauzage for your patience and notification regarding the issue
+as well as c0deMike and darkshade9 on github for pointing out the issue. I appreciate all reports on issues and aim to please my users as best I can.
+
+##################
+Previous Releases
+##################
+autosnort-debian-07-19-2014.sh
 
 Codename:REMEMBRANCE You left a lasting mark. Even still, I will never forget you.
 
@@ -51,10 +65,6 @@ Bug Fixes:
 
 Other things:
 --Noticed that the Snorby script fails catastrophically if rubygems.org is down or unresponsive. the snorby_install.log in /var/log that gets made will leave a pretty blatant error message. In my case it was "503 rubygems.org back end at capacity." was the only clue I would get that things went awry. That and the script not executing functions after the gem installation properly due to missing gems. Bottom line: if you see a 503 error message in the installation logs, the problem is with rubygems.org. This is the price you pay when you deal with the devil (Ruby)
-
-##################
-Previous Releases
-##################
 
 autosnort-debian-03-31-2014.sh
 
