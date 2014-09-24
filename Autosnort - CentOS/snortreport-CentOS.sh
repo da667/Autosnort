@@ -84,7 +84,8 @@ mv jpgraph-3* jpgraph
 print_status "downloading and installing Snort Report.."
 
 
-wget http://www.symmetrixtech.com/ids/snortreport-1.3.4.tar.gz &>> $sreport_logfile
+#wget http://www.symmetrixtech.com/ids/snortreport-1.3.4.tar.gz &>> $sreport_logfile
+wget http://symmetrixtech.com/wp/wp-content/uploads/2014/09/snortreport-1.3.4.tar.gz &>> $sreport_logfile
 if [ $? != 0 ];then
 	print_error "Attempt to pull down Snortreport failed. See $sreport_logfile for details."
 	exit 1
