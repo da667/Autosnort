@@ -88,8 +88,10 @@ cp /usr/src/$snortver/etc/gen-msg.map /usr/local/snort/etc
 ########################################
 
 print_status "OS Version Check.."
-release=`cat /etc/redhat-release|awk '{print $3}'`
-if [[ $release == "6."* || $release == "7."* ]]; then
+
+# /etc/redhat-release differs between 6 and 7, so let's grab the whole thing.
+# Use Perl regex engine (for negative lookbehinds) to ensure we account for major and minor versions (e.g. 6.7 and 7.4.1046)
+if [[ `cat /etc/redhat-release | grep -P '(?<!\.)[67]\.[0-9]+(\.[0-9]+)?'` ]]; then
 	print_good "OS is CentOS. Good to go."
 else
     print_notification "This is not CentOS 6 or CentOS 7. Be aware this script has NOT been tested on other platforms (Including RHEL, Fedora and/or SuSE)."
