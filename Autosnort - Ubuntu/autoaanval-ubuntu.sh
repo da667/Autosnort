@@ -74,7 +74,7 @@ fi
 
 ########################################
 
-print_status "Grabbing packages for Aanval.."
+print_status "Grabbing packages for aanval.."
 #grab packages for aanval most of the primary required packages are pulled by  the main AS script. Also suppressing the message for libphp-adodb
 echo libphp-adodb  libphp-adodb/pathmove note | debconf-set-selections
 apt-get install -y zlib1g-dev libmysqld-dev byacc libxml2-dev zlib1g php5 php5-mysql php5-gd nmap libssl-dev libcrypt-ssleay-perl libphp-adodb php-pear &>> $aanval_logfile
@@ -131,20 +131,20 @@ error_check 'aanval file ownership modification'
 
 print_status "Configuring Virtual Host Settings for Aanval.."
 
-echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/aanval-ssl
-echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/aanval-ssl
-echo "	#Turn on SSL. Most of the relevant settings are set in /etc/apache2/mods-available/ssl.conf" >> /etc/apache2/sites-available/aanval-ssl
-echo "	SSLEngine on" >> /etc/apache2/sites-available/aanval-ssl
-echo "" >> /etc/apache2/sites-available/aanval-ssl
-echo "	#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/aanval-ssl
-echo "	RewriteEngine On" >> /etc/apache2/sites-available/aanval-ssl
-echo "	RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/aanval-ssl
-echo "	RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/aanval-ssl
-echo "" >> /etc/apache2/sites-available/aanval-ssl
-echo "	#Now, we finally get to configuring our VHOST." >> /etc/apache2/sites-available/aanval-ssl
-echo "	ServerName aanval.localhost" >> /etc/apache2/sites-available/aanval-ssl
-echo "	DocumentRoot /var/www/aanval" >> /etc/apache2/sites-available/aanval-ssl
-echo "</VirtualHost>" >> /etc/apache2/sites-available/aanval-ssl
+echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/aanval-ssl.conf
+echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/aanval-ssl.conf
+echo "	#Turn on SSL. Most of the relevant settings are set in /etc/apache2/mods-available/ssl.conf" >> /etc/apache2/sites-available/aanval-ssl.conf
+echo "	SSLEngine on" >> /etc/apache2/sites-available/aanval-ssl.conf
+echo "" >> /etc/apache2/sites-available/aanval-ssl.conf
+echo "	#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/aanval-ssl.conf
+echo "	RewriteEngine On" >> /etc/apache2/sites-available/aanval-ssl.conf
+echo "	RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/aanval-ssl.conf
+echo "	RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/aanval-ssl.conf
+echo "" >> /etc/apache2/sites-available/aanval-ssl.conf
+echo "	#Now, we finally get to configuring our VHOST." >> /etc/apache2/sites-available/aanval-ssl.conf
+echo "	ServerName aanval.localhost" >> /etc/apache2/sites-available/aanval-ssl.conf
+echo "	DocumentRoot /var/www/aanval" >> /etc/apache2/sites-available/aanval-ssl.conf
+echo "</VirtualHost>" >> /etc/apache2/sites-available/aanval-ssl.conf
 
 ########################################
 
@@ -178,7 +178,7 @@ fi
 
 #enable the base-ssl vhost we made, and restart apache to serve it.
 
-a2ensite aanval-ssl &>> $aanval_logfile
+a2ensite aanval-ssl.conf &>> $aanval_logfile
 error_check 'Enable aanval vhost'
 
 service apache2 restart &>> $aanval_logfile

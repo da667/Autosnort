@@ -1,0 +1,10 @@
+[Unit]
+Description=Snort and Barnyard2 service start
+After=syslog.target network.target 
+
+[Service]
+Type=forking
+ExecStart=/bin/bash -c "ip link set arp off multicast off promisc on dev ens33; /opt/snort/bin/snort -D -u snort -g snort -c /opt/snort/etc/snort.conf -i ens33; /usr/local/bin/barnyard2 -c /opt/snort/etc/barnyard2.conf -d /var/log/snort -f snort.u2 -w /var/log/snort/barnyard2.waldo -D"
+
+[Install]
+WantedBy=multi-user.target

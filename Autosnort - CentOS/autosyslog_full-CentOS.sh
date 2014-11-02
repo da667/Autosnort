@@ -37,7 +37,6 @@ else
 	print_good "Found config file."
 fi
 
-########################################
 #We take the copy barnyard2.conf and use grep -v to disable mysql by removing that line. We then ask the user what name the want the sensor appear as, and the ip address of the syslog server.
 
 print_status "Reconfiguring barnyard2.conf output plugin to syslog_full.."

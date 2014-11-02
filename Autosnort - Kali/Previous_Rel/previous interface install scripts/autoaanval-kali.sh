@@ -40,47 +40,23 @@ function print_notification ()
 }
 
 ########################################
-#Error Checking function. Checks for exist status of last command ran. If non-zero assumes something went wrong and bails script.
-
-function error_check
-{
-
-if [ $? -eq 0 ]; then
-	print_good "$1 successfully completed."
-else
-	print_error "$1 failed. Please check $logfile for more details, or contact deusexmachina667 at gmail dot com for more assistance."
-exit 1
-fi
-
-}
-
-########################################
-#Pre-setup. First, if the aanval directory exists, delete it. It causes more problems than it resolves, and usually only exists if the install failed in some way. Wipe it away, start with a clean slate.
-if [ -d /var/www/aanval ]; then
-	print_notification "Snorby directory exists. Deleting to prevent issues.."
-	rm -rf /var/www/aanval
-fi
-
-#The config file should be in the same directory that snorby script is exec'd from. This shouldn't fail, but if it does..
-
-execdir=`pwd`
-if [ ! -f $execdir/full_autosnort.conf ]; then
-	print_error "full_autosnort.conf was NOT found in $execdir. This script relies HEAVILY on this config file. The main autosnort script, full_autosnort.conf and this file should be located in the SAME directory."
-	exit 1
-else
-	source $execdir/full_autosnort.conf
-	print_good "Found config file."
-fi
-
-########################################
 
 print_status "Grabbing packages for Aanval.."
 #grab packages for aanval most of the primary required packages are pulled by  the main AS script. Also suppressing the message for libphp-adodb
 echo libphp-adodb  libphp-adodb/pathmove note | debconf-set-selections
 apt-get install -y zlib1g-dev libmysqld-dev byacc libxml2-dev zlib1g php5 php5-mysql php5-gd nmap libssl-dev libcrypt-ssleay-perl libphp-adodb php-pear &>> $aanval_logfile
-error_check 'Package installation'
+
+if [ $? != 0 ];then
+	print_error "Failed to acquire required packages for Aanval. See $aanval_logfile for details."
+	exit 1
+else
+	print_good "Successfully acquired packages."
+fi
 
 ########################################
+
+execdir=`pwd`
+source $execdir/full_autosnort.conf
 
 #Make the aanval directory under /var/www, and cd into it
 mkdir /var/www/aanval
@@ -93,12 +69,22 @@ cd /var/www/aanval
 # The user should be informed and brought back to the main interface selection menu.
 print_status "Grabbing Aanval.."
 wget https://www.aanval.com/download/pickup -O aanval.tar.gz --no-check-certificate &>> $aanval_logfile
-error_check 'Aanval download'
+if [ $? != 0 ];then
+	print_error "Attempt to pull down aanval console failed. See $aanval_logfile for details."
+	exit 1
+else
+	print_good "Successfully downloaded Aanval."
+fi
 
 print_status "Installing Aanval.."
 
 tar -xzvf aanval.tar.gz &>> $aanval_logfile
-error_check 'Aanval file install'
+if [ $? != 0 ];then
+	print_error "Attempt to unpack Aanval failed. See $aanval_logfile for details."
+	exit 1
+else
+	print_good "Successfully installed aanval to /var/www/aanval."
+fi
 rm -rf aanval.tar.gz
 
 ########################################
@@ -109,20 +95,35 @@ rm -rf aanval.tar.gz
 print_status "Configuring mysql to work with Aanval.."
 
 mysql -u root -p$root_mysql_pass -e "create database aanvaldb;" &>> $aanval_logfile
-error_check 'Aanval database creation'
+if [ $? != 0 ]; then
+	print_notification "the command did NOT complete successfully. See $aanval_logfile for details."
+	exit 1
+else
+	print_good "aanvaldb database created!"
+fi
+
 
 #granting the snort user the ability to maintain the snort database so Aanval doesn't need root dba creds.
 
 print_status "Granting snort database user permissions to operate on aanval's database.."
 mysql -u root -p$root_mysql_pass -e "grant create, insert, select, delete, update on aanvaldb.* to snort@localhost identified by '$snort_mysql_pass';" &>> $aanval_logfile
-error_check 'Grant permissions to aanval database'
+if [ $? != 0 ]; then
+	print_notification "the command did NOT complete successfully. See $aanval_logfile for details."
+	exit 1
+else
+	print_good "database access granted!"
+fi
 
-########################################
 
 print_status "Granting ownership of /var/www/aanval to www-data.."
 
 chown -R www-data:www-data /var/www/aanval
-error_check 'aanval file ownership modification'
+if [ $? != 0 ]; then
+	print_notification "the command did NOT complete successfully. See $aanval_logfile for details."
+	exit 1
+else
+	print_good "Permissions modified!"
+fi
 
 ########################################
 
@@ -130,6 +131,15 @@ error_check 'aanval file ownership modification'
 
 
 print_status "Configuring Virtual Host Settings for Aanval.."
+echo "#This default vhost config geneated by autosnort. To remove, run cp /etc/apache2/defaultsiteconfbak /etc/apache2/sites-available/default" > /etc/apache2/sites-available/default
+echo "#This VHOST exists as a catch, to redirect any requests made via HTTP to HTTPS." >> /etc/apache2/sites-available/default
+echo "<VirtualHost *:80>" >> /etc/apache2/sites-available/default
+echo "        DocumentRoot /var/www/aanval" >> /etc/apache2/sites-available/default
+echo "        #Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/default
+echo "        RewriteEngine On" >> /etc/apache2/sites-available/default
+echo "        RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/default
+echo "        RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/default
+echo "</VirtualHost>" >> /etc/apache2/sites-available/default
 
 echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/aanval-ssl
 echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/aanval-ssl
@@ -148,41 +158,58 @@ echo "</VirtualHost>" >> /etc/apache2/sites-available/aanval-ssl
 
 ########################################
 
-#We start the background processors for the Aanval web interface, drop an init script to start aanval BPUs on boot. If the script is already there, we do not do this action.
-
+#We start the background processors for the Aanval web interface, and ask the user of they want an entry in rc.local to ensure the background processors are automatically started on reboot.
+#TODO: make an init script.
 
 print_status "Starting background processors for Aanval web interface.."
 cd /var/www/aanval/apps
 perl idsBackground.pl -start &>> $aanval_logfile
-error_check 'Execution of background processors'
-
-cd $execdir
-if [ -f /etc/init.d/aanvalbpu ]; then
-	print_notification "aanvalbpu init script already installed."
+if [ $? != 0 ];then
+	print_error "failed to start background processors. See $aanval_logfile for details."
+	exit 1
 else
-	if [ ! -f $execdir/aanvalbpu ]; then
-		print_error "The aanvalbpu file was not found in $execdir. Please make sure the file is there and try again."
-		exit 1
-	else
-		print_good "Found aanvalbpu init script."
-	fi
-	cp aanvalbpu /etc/init.d/aanvalbpu &>> $aanval_logfile
-	chown root:root /etc/init.d/aanvalbpu &>> $aanval_logfile
-	chmod 700 /etc/init.d/aanvalbpu &>> $aanval_logfile
-	update-rc.d aanvalbpu defaults &>> $aanval_logfile
-	error_check 'Init Script creation'
-	print_notification "aanvalbpu init script located in /etc/init.d/aanvalbpu"
+	print_good "Successfully started background processors."
 fi
+
+print_notification "The background processors need to run in order to export events fro the snort database to aanval's database."
+
+case $bgpstart in
+	1)
+	print_status "Adding job to start background processors on boot to /etc/rc.local."
+	echo "cd /var/www/aanval/apps" >> /etc/rc.local
+	echo "perl idsBackground.pl -start" >> /etc/rc.local
+	print_good "Successfully added background processors to rc.local."
+	;;
+	2)
+	print_notification "If the system reboots, the background processors will need to be started."
+	print_notification "You can do this by running: cd /var/www/aanval/apps && perl idsBackground.pl -start"
+	;;
+	*)
+	print_notification "Invalid configuration option. Check your full_autosnort.conf config and try again."
+	exit 1
+	;;
+esac
+
 
 ########################################
 
 #enable the base-ssl vhost we made, and restart apache to serve it.
 
 a2ensite aanval-ssl &>> $aanval_logfile
-error_check 'Enable aanval vhost'
+if [ $? -ne 0 ]; then
+    print_error "Failed to enable base-ssl virtual host. See $aanval_logfile for details."
+	exit 1	
+else
+    print_good "Successfully made virtual host changes."
+fi
 
 service apache2 restart &>> $aanval_logfile
-error_check 'Apache restart'
+if [ $? -ne 0 ]; then
+    print_error "Failed to restart apache2. See $aanval_logfile for details."
+	exit 1	
+else
+    print_good "Successfully restarted apache2."
+fi
 
 
 print_notification "The log file for this interface installation is located at: $aanval_logfile"

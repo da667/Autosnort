@@ -1,5 +1,5 @@
 #!/bin/bash
-#BASE shell script 'module' for Debian.
+#BASE shell script 'module'
 #Sets up BASE for Autosnort 
 
 ########################################

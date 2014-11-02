@@ -12,7 +12,7 @@ exec &> ${snorby_logfile}.pipe
 rm ${snorby_logfile}.pipe
 
 ########################################
-#Metasploit-like print statements: status, good, bad and notification. Gratuitously ganked from Darkoperator's metasploit install script.
+#Metasploit-like print statements: status, good, bad and notification. Gratouitiously ganked from Darkoperator's metasploit install script.
 
 function print_status ()
 {
@@ -74,22 +74,30 @@ fi
 
 #Grab pre-req packages.
 
-print_status "Acquiring packages for snorby (this may take a little while)"
+print_status "Acquiring packages for snorby (this may take a little while).."
 
-apt-get install -y libyaml-dev libxslt1-dev libsqlite3-dev libmysql++-dev libcurl4-openssl-dev apache2-prefork-dev &>> $snorby_logfile
+apt-get install -y libyaml-dev git-core wkhtmltopdf libssl-dev libxslt1-dev libsqlite3-dev libmysql++-dev libcurl4-openssl-dev apache2-prefork-dev default-jre-headless curl sudo &>> $snorby_logfile
 error_check 'Package installation'
 
 ########################################
 #RVM is the ruby version manager. A script that finds the pre-reqs required to build and install ruby.
+#Debian 6 doesn't trust raw.github.io... a version check is necessary.
 
 print_status "Acquiring RVM.."
-wget https://get.rvm.io -O rvm_stable.sh &>> $snorby_logfile
-error_check 'Download of RVM'
+
+release=`lsb_release -r| awk '{print $2}'`
+if [[ $release == "6."* ]]; then
+	wget https://get.rvm.io -O rvm_stable.sh --no-check-certificate &>> $snorby_logfile
+	error_check 'Download of RVM'
+else
+	wget https://get.rvm.io -O rvm_stable.sh &>> $snorby_logfile
+	error_check 'Download of RVM'
+fi
 
 bash rvm_stable.sh &>> $snorby_logfile
 error_check 'RVM installation'
 
-print_status "Configuring RVM.."
+print_status "Configuring RVM."
 
 /usr/local/rvm/bin/rvm autolibs enable
 source /etc/profile.d/rvm.sh
@@ -98,7 +106,6 @@ print_good "RVM configured."
 
 ########################################
 #Now we go to ruby-lang.org to determine the latest 1.9.x release (snorby isn't 2.x compatible) to install, then install it.
-
 
 print_status "Hitting ruby-lang.org downloads page determine the latest version of ruby 1.9.x to install.."
 
@@ -125,7 +132,7 @@ update_rubygems &>> $snorby_logfile
 
 cd /var/www/
 
-print_status "Grabbing snorby via git.."
+print_status "Grabbing snorby via github.."
 
 git clone https://github.com/Snorby/snorby.git &>> $snorby_logfile
 error_check 'Snorby download'

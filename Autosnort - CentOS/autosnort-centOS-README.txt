@@ -1,29 +1,85 @@
 ###############################
 Installation Instructions
 ###############################
-
-1. copy the autosnort-centOS-mm-dd-yyyy.sh script to root's home directory (/root) from the autosnort-master/autosnort - CentOS directory
-2. decide which interface you would like to install there are five choices:
-snortreport
-BASE
-aanval
-snorby
-remote syslog
-3. Copy the shell script named after the interface you wish to install from autosnort-master/autosnort - CentOS/ directory and place it in /root along with the autosnort-CentOS-mm-dd-yyyy.sh script (example: if you want to install snorby, copy the snort-CentOS.sh script to /root along with autosnort-centOS-mm-dd-yyyy.sh script
-4. Run the autosnort-centOS-mm-dd-yyyy.sh script:
+1. Edit the full_autosnort.conf file to reflect your installation requirements. At a minimum you will need to provide a password for the ROOT mysql user and the SNORT mysql user and finally a valid oink code for snort.org. By default, the config file will install mysql, httpd, snorby, snort, barnyard2 and init/systemd scripts. Snort will run on eth1. If you wish to change the default settings, the configuration file has tons of comments to help you along the way.
+2. Run autosnort-centOS-mm-dd-yyyy.sh script. By default, all of the files necessary to run autosnort are in the same directory. At a minimum, the script requires full_autosnort.conf, snortbarn (init script for CentOS/RHEL 6) OR snortbarn.service (systemd script for CentOS/RHEL7), and the interface install script (for example, autosnorby-CentOS) to be in the SAME directory. By default, all the files required are in the same directory.
+Note: If you are installing aanval, you will also need the aanvalbpu (CentOS/RHEL 6) OR aanvalbpu.service (CentOS/RHEL 7) to be in the same directory as well.
+3. Run the autosnort-centOS-mm-dd-yyyy.sh script:
 as root:
-cd /root;bash autosnort-centOS-mm-dd-yyyy.sh
+bash autosnort-centOS-mm-dd-yyyy.sh
 alternatively:
-cd /root;chmod u+x autosnort-centOS-mm-dd-yyyy.sh;./autosnort-centOS-mm-dd-yyyy.sh
+chmod u+x autosnort-centOS-mm-dd-yyyy.sh;./autosnort-centOS-mm-dd-yyyy.sh
 via sudo:
-cd /root;sudo bash autosnort-centOS-mm-dd-yyyy.sh
-5. The script will prompt you as it needs answers from you. Answer the questions and before you know it, the installation is done.
+sudo bash autosnort-centOS-mm-dd-yyyy.sh
+4. The script should run completely without any user input. If there are any problems, the scripts log in the following locations:
+/var/log/autosnort_install.log
+/var/log/base_install.log
+/var/log/snortreport_install.log
+/var/log/snorby_install.log
+/var/log/aanval_install.log
 
+Contact deusexmachina667 at gmail dot com with a copy of any of the above log files and I'll do what I can to assist you.
+
+Note: After the installation is complete, either secure the full_autosnort.conf file, or delete it to ensure the root and/or snort database user's passwords are secured.
 ###############################
 autosnort-centOS Release Notes
-##############################
+###############################
+Codename:"Winter is Coming"
 
-Current Release: autosnort-centOS-08-25-2014
+Massive updates all around!
+
+Current Release: autosnort-CentOS-11-02-2014.sh
+
+autosnort-centOS changes:
+- The main autosnort script, as well as all the interface installation scripts now FULLY support CentOS/RHEL 6 and/or CentOS/RHEL 7, in keeping with supporting the current major release, and the prior release of CentOS/RHEL.
+-- Just saying for the record: arbitrarily re-naming all of your packages and changing your init system all in a single release was FUN to deal with.
+- The CentOS release of autosnort (as well as all the other releases of autosnort) are now fully automated and driven by a configuration file (full_autosnort.conf). 
+-- By default, the config will install snorby and snort will be configured to sniff on eth1.
+-- The configuration file can be modified to have snort sniff on any interface, and install any output interface (snortreport, BASE, aanval, syslog_full, and/or nothing at all)
+- The main autosnort script has been reconfigured to install an init script (for CentOS/RHEL version 6 or less) or a systemd service (CentOS/RHEL version 7 or greater)
+-- this init script starts both snort and barnyard2 on boot.
+-- If you wish to modify the ip link/ifconfig options for the snort interface (for instance, remove the no arp and no multicast options if you don't have a second dedicated sniffing interface for snort, or some other reason..) you can do so via the snortbarn init script or snortbarn.service systemd script.
+- Much of the code was completely re-written and streamlined and a few solid feature requests were finally implemented.
+- The pulledpork installation portion of the script installs a cronjob to install new rules once weekly on Sunday morning. (kudos to @Snauzage for the request!)
+- Choosing to install a web interface now installs a stub virtual host to redirect all http requests to https. Previously, it was the web interface install scripts that did this, but I figured I would rather have the code written once, than written four times in each web interface install script.
+
+all web interface scripts:
+- Just like with the main script, everything has been streamlined and fully automated. The user should not have to answer any prompts. 
+
+aanval script changes:
+- an init script (aanvalbpu) and a systemd script (aanvalbpu.service) have been created to handle starting aanval's background processors instead of relying on rc.local. Ensure one of these files -- aanvalbpu for centOS/RHEL 6 or aanvalbpu.service for centOS/RHEL 7, is in the SAME directory as the other autosnort required/configuration files to ensure a successful aanval installation.
+
+BASE script changes:
+- php's adodb package is no longer available in CentOS/RHEL 7 EPEL repos so far as I can tell, so I've resorted to pulling adodb from sourceforge and installing it manually.
+
+snortreport script changes:
+-Symmetrix Technologies changed to what I believe is a wordpress-based site. This changed the download location for SnortReport (thanks to r3d91l from github for reporting this issue)
+
+snorby script changes:
+-apparently changing the wget to www.ruby-lang.org (from ruby-lang.org) for checking the latest ruby 1.9.x version fixes needing --no-check-certificate (It's like I'm using HTTPS again!) (Thanks to ssi0202 from github for the report)
+
+syslog_full script changes:
+- If you wish to configure autosnort to utilize syslog_full output, you will want to fill out the syslog_full portion of full_autosnort.conf, specifically sensor_name (set to the sensor's hostname by default) and syslog_server (the IP address of the syslog server you want to send syslog messages to)
+
+Bug Fixes:
+- The OS Version check has been changed and improved a bit (Thanks to Signus for the recommendation to revamp this)
+- CentOS/RHEL 7 now have proper support and will download the correct packages required for tool installation
+- the EPEL test now supports CentOS/RHEL 7 properly, including the directory structure change to download the EPEL RPM package now. IT WORKS! \0/
+
+Other notes:
+- Autosnort can finally be ran outside of the "/root" directory. In order for the script to run correctly, these four things MUST be in the SAME directory, wherever you execute from:
+-- the autosnort-centOS script
+-- the snortbarn script (centOS/RHEL 6) or snortbarn.service (centOS/RHEL 7)
+-- full_autosnort.conf
+-- the web interface script you wish to install
+-- IF you are installing aanval as your event review interface: You must also have the aanvalbpu (centOS/RHEL 6) or aanvalbpu.service (centOS/RHEL 7) script in the same directory as well.
+-- as an unprofessional, and frankly childish note: fuck Redhat for arbitrarily changing the names of most of their packages, what is installed in CentOS 7 minimal, interface management tools, firewall management tools, and the init system in one fell swoop in CentOS/RHEL 7. I hated it, but I'm more knowledgeable for having had to work with it.
+
+##################
+Previous Releases
+##################
+
+autosnort-centOS-08-25-2014
 
 A quick release to fix a showstopper of a bug..
 
@@ -38,10 +94,6 @@ Bug Fixes:
 Thank you to @JakeKing and @Snauzage for your patience and notification regarding the issue
 as well as c0deMike and darkshade9 on github for pointing out the issue. I appreciate all reports on issues and aim to please my users as best I can.
 
-
-##################
-Previous Releases
-##################
 
 autosnort-centOS-07-18-2014.sh
 

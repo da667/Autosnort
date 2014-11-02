@@ -1,0 +1,66 @@
+#!/bin/bash
+#
+#Snortbarn		Startup script for Aanval Background Processors
+# chkconfig: - 86 14
+# description:	This script provided by Autosnort. It is \
+#				Responsible for Starting/Stopping Both   \
+#				Aanval's Background Processor Daemons
+# processnames: BPU
+### BEGIN INIT INFO
+# Provides: background processors
+# Required-Start: $local_fs $remote_fs $network $named $syslog $time $httpd
+# Required-Stop: $local_fs $remote_fs $network $named $syslog $time $httpd
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: start and stop aanval BPUs (background processors)
+# Description: Aanval is a web front-end for snort.
+### END INIT INFO
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+do_start()
+{
+    echo "Starting Aanval BPUs"
+	cd /var/www/html/aanval/apps
+	perl idsBackground.pl -start
+    if [ $? -eq 0 ]; then
+		echo "Aanval BPUs successfully started."
+		logger "Aanval BPUs Started!"
+	else
+		echo "Aanval BPUs failed to start!"
+	fi
+    return 0
+}
+
+do_stop()
+{
+	echo "Stopping Aanval BPUs"
+	cd /var/www/html/aanval/apps
+	perl idsBackground.pl -stop
+    if [ $? -eq 0 ]; then
+		echo "Aanval BPUs successfully stopped."
+		logger "Aanval BPUs Stopped!"
+	else
+		echo "Aanval BPUs failed to stop! (Permissions? Already stopped?)"
+	fi
+    return 0
+}
+
+case "$1" in
+ start)
+    do_start
+    ;;
+ stop)
+    do_stop
+    ;;
+ restart)
+    do_stop
+    do_start
+    ;;
+ *)
+    echo "Usage: snortbarn {start|stop|restart}" >&2
+    exit 3
+    ;;
+esac
+exit 0

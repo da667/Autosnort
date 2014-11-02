@@ -1,6 +1,6 @@
 #!/bin/bash
 #Snortreport shell script 'module'
-#Sets up snort report for Autosnort on Debian Systems
+#Sets up snort report for Autosnort
 
 ########################################
 #logging setup: Stack Exchange made this.
@@ -75,9 +75,9 @@ fi
 
 ########################################
 
-print_status "Installing packages for Snort Report.."
+print_status "Installing packages for Snortreport.."
 
-apt-get install -y php5-gd &>> $sreport_logfile
+apt-get install -y php5 php5-mysql php5-gd nmap nbtscan &>> $sreport_logfile
 error_check 'Package installation'
 
 ########################################
@@ -155,7 +155,7 @@ chmod 400 /var/www/snortreport/srconf.php &>> $sreport_logfile
 chown -R www-data:www-data /var/www/snortreport &>> $sreport_logfile
 chown -R www-data:www-data /var/www/jpgraph &>> $sreport_logfile
 
-print_good "File permissions set."
+print_good "File permissions reset."
 
 ########################################
 
@@ -163,24 +163,24 @@ print_good "File permissions set."
 
 print_status "Configuring Virtual Host Settings for Snort Report..."
 
-echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/snortreport-ssl
-echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/snortreport-ssl
-echo "	#Turn on SSL. Most of the relevant settings are set in /etc/apache2/mods-available/ssl.conf" >> /etc/apache2/sites-available/snortreport-ssl
-echo "	SSLEngine on" >> /etc/apache2/sites-available/snortreport-ssl
-echo "" >> /etc/apache2/sites-available/snortreport-ssl
-echo "	#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/snortreport-ssl
-echo "	RewriteEngine On" >> /etc/apache2/sites-available/snortreport-ssl
-echo "	RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/snortreport-ssl
-echo "	RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/snortreport-ssl
-echo "" >> /etc/apache2/sites-available/snortreport-ssl
-echo "	#Now, we finally get to configuring our VHOST." >> /etc/apache2/sites-available/snortreport-ssl
-echo "	ServerName snortreport.localhost" >> /etc/apache2/sites-available/snortreport-ssl
-echo "	DocumentRoot /var/www/snortreport" >> /etc/apache2/sites-available/snortreport-ssl
-echo "</VirtualHost>" >> /etc/apache2/sites-available/snortreport-ssl
+echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/snortreport-ssl.conf
+echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/snortreport-ssl.conf
+echo "	#Turn on SSL. Most of the relevant settings are set in /etc/apache2/mods-available/ssl.conf" >> /etc/apache2/sites-available/snortreport-ssl.conf
+echo "	SSLEngine on" >> /etc/apache2/sites-available/snortreport-ssl.conf
+echo "" >> /etc/apache2/sites-available/snortreport-ssl.conf
+echo "	#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/snortreport-ssl.conf
+echo "	RewriteEngine On" >> /etc/apache2/sites-available/snortreport-ssl.conf
+echo "	RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/snortreport-ssl.conf
+echo "	RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/snortreport-ssl.conf
+echo "" >> /etc/apache2/sites-available/snortreport-ssl.conf
+echo "	#Now, we finally get to configuring our VHOST." >> /etc/apache2/sites-available/snortreport-ssl.conf
+echo "	ServerName snortreport.localhost" >> /etc/apache2/sites-available/snortreport-ssl.conf
+echo "	DocumentRoot /var/www/snortreport" >> /etc/apache2/sites-available/snortreport-ssl.conf
+echo "</VirtualHost>" >> /etc/apache2/sites-available/snortreport-ssl.conf
 
 ########################################
 
-a2ensite snortreport-ssl &>> $sreport_logfile
+a2ensite snortreport-ssl.conf &>> $sreport_logfile
 error_check 'snortreport vhost'
 
 service apache2 restart &>> $sreport_logfile

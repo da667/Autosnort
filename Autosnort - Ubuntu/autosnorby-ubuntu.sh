@@ -12,7 +12,7 @@ exec &> ${snorby_logfile}.pipe
 rm ${snorby_logfile}.pipe
 
 ########################################
-#Metasploit-like print statements: status, good, bad and notification. Gratuitously ganked from Darkoperator's metasploit install script.
+#Metasploit-like print statements: status, good, bad and notification. Gratouitiously ganked from Darkoperator's metasploit install script.
 
 function print_status ()
 {
@@ -72,15 +72,12 @@ fi
 
 ########################################
 
-#Grab pre-req packages.
+#This entire first block is to: Grab pre-reqs for Snorby, rvm (to install and automatically fix dependencies for ruby), install all the gems needed for snorby, then pull down snorby via github.
 
 print_status "Acquiring packages for snorby (this may take a little while)"
 
-apt-get install -y libyaml-dev libxslt1-dev libsqlite3-dev libmysql++-dev libcurl4-openssl-dev apache2-prefork-dev &>> $snorby_logfile
+apt-get install -y libyaml-dev git-core wkhtmltopdf libssl-dev libxslt1-dev libsqlite3-dev libmysql++-dev libcurl4-openssl-dev apache2-prefork-dev default-jre-headless curl sudo &>> $snorby_logfile
 error_check 'Package installation'
-
-########################################
-#RVM is the ruby version manager. A script that finds the pre-reqs required to build and install ruby.
 
 print_status "Acquiring RVM.."
 wget https://get.rvm.io -O rvm_stable.sh &>> $snorby_logfile
@@ -89,7 +86,7 @@ error_check 'Download of RVM'
 bash rvm_stable.sh &>> $snorby_logfile
 error_check 'RVM installation'
 
-print_status "Configuring RVM.."
+print_status "Configuring RVM."
 
 /usr/local/rvm/bin/rvm autolibs enable
 source /etc/profile.d/rvm.sh
@@ -99,10 +96,9 @@ print_good "RVM configured."
 ########################################
 #Now we go to ruby-lang.org to determine the latest 1.9.x release (snorby isn't 2.x compatible) to install, then install it.
 
-
 print_status "Hitting ruby-lang.org downloads page determine the latest version of ruby 1.9.x to install.."
 
-wget https://www.ruby-lang.org/en/downloads -O /tmp/downloads.html &>> $snorby_logfile
+wget http://www.ruby-lang.org/en/downloads/ -O /tmp/downloads.html &>> $snorby_logfile
 error_check 'Download of ruby-lang.org downloads page'
 
 rubyver=`grep -e "ruby-1" /tmp/downloads.html | head -2 | tail -1 | cut -d"-" -f3,4 | cut -d"." -f1,2,3`
@@ -125,7 +121,7 @@ update_rubygems &>> $snorby_logfile
 
 cd /var/www/
 
-print_status "Grabbing snorby via git.."
+print_status "Grabbing snorby via github.."
 
 git clone https://github.com/Snorby/snorby.git &>> $snorby_logfile
 error_check 'Snorby download'
@@ -184,26 +180,26 @@ print_good "Apache successfully configured to use passenger."
 
 print_status "Configuring Snorby vhost.."
 
-echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/snorby-ssl
-echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/snorby-ssl
-echo "	#Turn on SSL. Most of the relevant settings are set in /etc/apache2/mods-available/ssl.conf" >> /etc/apache2/sites-available/snorby-ssl
-echo "	SSLEngine on" >> /etc/apache2/sites-available/snorby-ssl
+echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/snorby-ssl.conf
+echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/snorby-ssl.conf
+echo "	#Turn on SSL. Most of the relevant settings are set in /etc/apache2/mods-available/ssl.conf" >> /etc/apache2/sites-available/snorby-ssl.conf
+echo "	SSLEngine on" >> /etc/apache2/sites-available/snorby-ssl.conf
 echo "" >> /etc/apache2/sites-available/snorby-ssl
-echo "	#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/snorby-ssl
-echo "	RewriteEngine On" >> /etc/apache2/sites-available/snorby-ssl
-echo "	RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/snorby-ssl
-echo "	RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/snorby-ssl
-echo "" >> /etc/apache2/sites-available/snorby-ssl
-echo "	#Now, we finally get to configuring our VHOST." >> /etc/apache2/sites-available/snorby-ssl
-echo "	ServerName snorby.localhost" >> /etc/apache2/sites-available/snorby-ssl
-echo "	DocumentRoot /var/www/snorby/public" >> /etc/apache2/sites-available/snorby-ssl
-echo "     <Directory /var/www/snorby/public>" >> /etc/apache2/sites-available/snorby-ssl
+echo "	#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/snorby-ssl.conf
+echo "	RewriteEngine On" >> /etc/apache2/sites-available/snorby-ssl.conf
+echo "	RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/snorby-ssl.conf
+echo "	RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/snorby-ssl.conf
+echo "" >> /etc/apache2/sites-available/snorby-ssl.conf
+echo "	#Now, we finally get to configuring our VHOST." >> /etc/apache2/sites-available/snorby-ssl.conf
+echo "	ServerName snorby.localhost" >> /etc/apache2/sites-available/snorby-ssl.conf
+echo "	DocumentRoot /var/www/snorby/public" >> /etc/apache2/sites-available/snorby-ssl.conf
+echo "     <Directory /var/www/snorby/public>" >> /etc/apache2/sites-available/snorby-ssl.conf
 echo "          # This relaxes Apache security settings." >> /etc/apache2/sites-available/snorby-ssl
-echo "          AllowOverride all" >> /etc/apache2/sites-available/snorby-ssl
-echo "          # MultiViews must be turned off." >> /etc/apache2/sites-available/snorby-ssl
-echo "          Options -MultiViews" >> /etc/apache2/sites-available/snorby-ssl
-echo "     </Directory>" >> /etc/apache2/sites-available/snorby-ssl
-echo "</VirtualHost>" >> /etc/apache2/sites-available/snorby-ssl
+echo "          AllowOverride all" >> /etc/apache2/sites-available/snorby-ssl.conf
+echo "          # MultiViews must be turned off." >> /etc/apache2/sites-available/snorby-ssl.conf
+echo "          Options -MultiViews" >> /etc/apache2/sites-available/snorby-ssl.conf
+echo "     </Directory>" >> /etc/apache2/sites-available/snorby-ssl.conf
+echo "</VirtualHost>" >> /etc/apache2/sites-available/snorby-ssl.conf
 
 print_good "Snorby vhost added."
 
@@ -258,7 +254,7 @@ chown -R www-data:www-data /var/www/snorby/
 
 ########################################
 
-a2ensite snorby-ssl &>> $snorby_logfile
+a2ensite snorby-ssl.conf &>> $snorby_logfile
 error_check 'enable Snorby vhost'
 
 service apache2 restart &>> $snorby_logfile

@@ -77,7 +77,7 @@ fi
 
 print_status "Installing packages for Snort Report.."
 
-apt-get install -y php5-gd &>> $sreport_logfile
+apt-get install -y php5 php5-mysql php5-gd nmap nbtscan &>> $sreport_logfile
 error_check 'Package installation'
 
 ########################################
@@ -155,7 +155,7 @@ chmod 400 /var/www/snortreport/srconf.php &>> $sreport_logfile
 chown -R www-data:www-data /var/www/snortreport &>> $sreport_logfile
 chown -R www-data:www-data /var/www/jpgraph &>> $sreport_logfile
 
-print_good "File permissions set."
+print_good "File permissions reset."
 
 ########################################
 

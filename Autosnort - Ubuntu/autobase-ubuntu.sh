@@ -1,5 +1,5 @@
 #!/bin/bash
-#BASE shell script 'module' for Debian.
+#BASE shell script 'module'
 #Sets up BASE for Autosnort 
 
 ########################################
@@ -66,17 +66,18 @@ else
 fi
 
 ########################################
-#grab packages for BASE
+#grab packages for BASE.
 
-print_status "Grabbing packages required for BASE."
+print_status "Grabbing packages required for BASE.."
 
 echo libphp-adodb  libphp-adodb/pathmove note | debconf-set-selections
 apt-get install -y libphp-adodb ca-certificates php-pear libwww-perl php5 php5-mysql php5-gd &>> $base_logfile
 error_check 'Package installation'
 
+
 ########################################
 
-#These are php-pear config commands Seen in the 2.9.4.0 install guide for Debian.
+#These are php-pear config commands.
 
 print_status "Configuring php via php-pear."
 
@@ -126,24 +127,24 @@ chown -R www-data:www-data /var/www
 
 print_status "Configuring Virtual Host Settings for Base.."
 
-echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/base-ssl
-echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/base-ssl
-echo "	#Turn on SSL. Most of the relevant settings are set in /etc/apache2/mods-available/ssl.conf" >> /etc/apache2/sites-available/base-ssl
-echo "	SSLEngine on" >> /etc/apache2/sites-available/base-ssl
+echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/base-ssl.conf
+echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/base-ssl.conf
+echo "	#Turn on SSL. Most of the relevant settings are set in /etc/apache2/mods-available/ssl.conf" >> /etc/apache2/sites-available/base-ssl.conf
+echo "	SSLEngine on" >> /etc/apache2/sites-available/base-ssl.conf
 echo "" >> /etc/apache2/sites-available/base-ssl
 echo "	#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/base-ssl
-echo "	RewriteEngine On" >> /etc/apache2/sites-available/base-ssl
-echo "	RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/base-ssl
-echo "	RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/base-ssl
-echo "" >> /etc/apache2/sites-available/base-ssl
-echo "	#Now, we finally get to configuring our VHOST." >> /etc/apache2/sites-available/base-ssl
-echo "	ServerName base.localhost" >> /etc/apache2/sites-available/base-ssl
-echo "	DocumentRoot /var/www/base" >> /etc/apache2/sites-available/base-ssl
-echo "</VirtualHost>" >> /etc/apache2/sites-available/base-ssl
+echo "	RewriteEngine On" >> /etc/apache2/sites-available/base-ssl.conf
+echo "	RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/base-ssl.conf
+echo "	RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/base-ssl.conf
+echo "" >> /etc/apache2/sites-available/base-ssl.conf
+echo "	#Now, we finally get to configuring our VHOST." >> /etc/apache2/sites-available/base-ssl.conf
+echo "	ServerName base.localhost" >> /etc/apache2/sites-available/base-ssl.conf
+echo "	DocumentRoot /var/www/base" >> /etc/apache2/sites-available/base-ssl.conf
+echo "</VirtualHost>" >> /etc/apache2/sites-available/base-ssl.conf
 
 ########################################
 
-a2ensite base-ssl &>> $base_logfile
+a2ensite base-ssl.conf &>> $base_logfile
 error_check 'Enable BASE vhost'
 
 service apache2 restart &>> $base_logfile

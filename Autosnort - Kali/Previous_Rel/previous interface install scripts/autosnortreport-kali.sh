@@ -35,50 +35,19 @@ function print_notification ()
 }
 
 ########################################
-#Error Checking function. Checks for exist status of last command ran. If non-zero assumes something went wrong and bails script.
-
-function error_check
-{
-
-if [ $? -eq 0 ]; then
-	print_good "$1 successfully completed."
-else
-	print_error "$1 failed. Please check $logfile for more details, or contact deusexmachina667 at gmail dot com for more assistance."
-exit 1
-fi
-
-}
-
-########################################
-
-#Pre-setup. First, if the SnortReport or JPGraph directories exist, delete them. It causes more problems than it resolves, and usually only exists if the install failed in some way. Wipe it away, start with a clean slate.
-if [ -d /var/www/snortreport ]; then
-	print_notification "Directory exists. Deleting to prevent issues.."
-	rm -rf /var/www/snortreport &>> $sreport_logfile
-fi
-if [ -d /var/www/jpgraph ]; then
-	print_notification "Directory exists. Deleting to prevent issues.."
-	rm -rf /var/www/jpgraph &>> $sreport_logfile
-fi
-
-########################################
-#The config file should be in the same directory that SnortReport script is exec'd from. This shouldn't fail, but if it does..
 
 execdir=`pwd`
-if [ ! -f $execdir/full_autosnort.conf ]; then
-	print_error "full_autosnort.conf was NOT found in $execdir. This script relies HEAVILY on this config file. The main autosnort script, full_autosnort.conf and this file should be located in the SAME directory."
-	exit 1
-else
-	source $execdir/full_autosnort.conf
-	print_good "Found config file."
-fi
-
-########################################
+source $execdir/full_autosnort.conf
 
 print_status "Installing packages for Snort Report.."
 
 apt-get install -y php5-gd &>> $sreport_logfile
-error_check 'Package installation'
+if [ $? != 0 ];then
+	print_error "Failed to acquire required packages for Snortreport. See $sreport_logfile for details."
+	exit 1
+else
+	print_good "Successfully acquired packages."
+fi
 
 ########################################
 
@@ -90,12 +59,22 @@ print_status "Downloading and installing jpgraph.."
 cd /var/www
 
 wget http://jpgraph.net/download/download.php?p=5 -O jpgraph305.tar.gz &>> $sreport_logfile
-error_check 'jpgraph download'
+if [ $? != 0 ];then
+	print_error "Attempt to pull down jpgraph failed. See $sreport_logfile for details."
+	exit 1
+else
+	print_good "Successfully downloaded jpgraph."
+fi
 
 print_status "Installing jpgraph.."
 
 tar -xzvf jpgraph305.tar.gz &>> $sreport_logfile
-error_check 'jpgraph installation'
+if [ $? != 0 ];then
+	print_error "Attempt to install jpgraph failed. See $sreport_logfile for details."
+	exit 1
+else
+	print_good "Successfully installed jpgraph."
+fi
 
 rm -rf jpgraph305.tar.gz &>> $sreport_logfile
 mv jpgraph-3* jpgraph &>> $sreport_logfile
@@ -106,11 +85,22 @@ mv jpgraph-3* jpgraph &>> $sreport_logfile
 
 print_status "downloading and installing Snort Report.."
 
-wget http://symmetrixtech.com/wp/wp-content/uploads/2014/09/snortreport-1.3.4.tar.gz &>> $sreport_logfile
-error_check 'snortreport download'
+
+wget http://www.symmetrixtech.com/ids/snortreport-1.3.4.tar.gz &>> $sreport_logfile
+if [ $? != 0 ];then
+	print_error "Attempt to pull down Snortreport failed. See $sreport_logfile for details."
+	exit 1
+else
+	print_good "Successfully downloaded Snort Report."
+fi
 
 tar -xzvf snortreport-1.3.4.tar.gz &>> $sreport_logfile
-error_check 'snortreport file installation'
+if [ $? != 0 ];then
+	print_error "Attempt to install Snort Report failed. See $sreport_logfile for details."
+	exit 1
+else
+	print_good "Successfully installed Snort Report."
+fi
 
 rm -rf snortreport-1.3.4.tar.gz &>> $sreport_logfile
 mv /var/www/snortreport-1.3.4 /var/www/snortreport &>> $sreport_logfile
@@ -155,13 +145,23 @@ chmod 400 /var/www/snortreport/srconf.php &>> $sreport_logfile
 chown -R www-data:www-data /var/www/snortreport &>> $sreport_logfile
 chown -R www-data:www-data /var/www/jpgraph &>> $sreport_logfile
 
-print_good "File permissions set."
+print_good "File permissions reset."
 
 ########################################
 
 #These are virtual host settings. The default virtual host forces redirect of all traffic to https (SSL, port 443) to ensure console traffic is encrypted and secure. We then enable the new SSL site we made, and restart apache to start serving it.
 
 print_status "Configuring Virtual Host Settings for Snort Report..."
+
+echo "#This default vhost config geneated by autosnort. To remove, run cp /etc/apache2/defaultsiteconfbak /etc/apache2/sites-available/default" > /etc/apache2/sites-available/default
+echo "#This VHOST exists as a catch, to redirect any requests made via HTTP to HTTPS." >> /etc/apache2/sites-available/default
+echo "<VirtualHost *:80>" >> /etc/apache2/sites-available/default
+echo "        DocumentRoot /var/www/snortreport" >> /etc/apache2/sites-available/default
+echo "        #Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/default
+echo "        RewriteEngine On" >> /etc/apache2/sites-available/default
+echo "        RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/default
+echo "        RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/default
+echo "</VirtualHost>" >> /etc/apache2/sites-available/default
 
 echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/snortreport-ssl
 echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/snortreport-ssl
@@ -178,13 +178,21 @@ echo "	ServerName snortreport.localhost" >> /etc/apache2/sites-available/snortre
 echo "	DocumentRoot /var/www/snortreport" >> /etc/apache2/sites-available/snortreport-ssl
 echo "</VirtualHost>" >> /etc/apache2/sites-available/snortreport-ssl
 
-########################################
-
 a2ensite snortreport-ssl &>> $sreport_logfile
-error_check 'snortreport vhost'
+if [ $? -ne 0 ]; then
+    print_error "Failed to enable snortreport-ssl virtual host. See $sreport_logfile for details."
+	exit 1	
+else
+    print_good "Successfully made virtual host changes."
+fi
 
 service apache2 restart &>> $sreport_logfile
-error_check 'Apache restart'
+if [ $? -ne 0 ]; then
+    print_error "Failed to restart apache2. See $sreport_logfile for details."
+	exit 1	
+else
+    print_good "Successfully restarted apache2."
+fi
 
 print_notification "The log file for this interface installation is located at: $sreport_logfile"
 

@@ -1,6 +1,7 @@
 #!/bin/bash
 #Snortreport shell script 'module'
-#Sets up snort report for Autosnort on Debian Systems
+#Sets up snortreport for Autosnort on CentOS Systems
+#modified on 08/15. Not yet tested.
 
 ########################################
 #logging setup: Stack Exchange made this.
@@ -50,15 +51,14 @@ fi
 }
 
 ########################################
-
 #Pre-setup. First, if the SnortReport or JPGraph directories exist, delete them. It causes more problems than it resolves, and usually only exists if the install failed in some way. Wipe it away, start with a clean slate.
-if [ -d /var/www/snortreport ]; then
+if [ -d /var/www/html/snortreport ]; then
 	print_notification "Directory exists. Deleting to prevent issues.."
-	rm -rf /var/www/snortreport &>> $sreport_logfile
+	rm -rf /var/www/html/snortreport &>> $sreport_logfile
 fi
-if [ -d /var/www/jpgraph ]; then
+if [ -d /var/www/html/jpgraph ]; then
 	print_notification "Directory exists. Deleting to prevent issues.."
-	rm -rf /var/www/jpgraph &>> $sreport_logfile
+	rm -rf /var/www/html/jpgraph &>> $sreport_logfile
 fi
 
 ########################################
@@ -77,17 +77,22 @@ fi
 
 print_status "Installing packages for Snort Report.."
 
-apt-get install -y php5-gd &>> $sreport_logfile
-error_check 'Package installation'
+yum -y install php php-common php-gd php-cli php-mysql &>> $sreport_logfile
+if [ $? != 0 ];then
+	print_error "Failed to acquire required packages for Snort Report. See $sreport_logfile for details."
+	exit 1
+else
+	print_good "Successfully acquired packages."
+fi
 
 ########################################
 
-#Grab jpgraph and throw it in /var/www
+#Grab jpgraph and throw it in /var/www/html
 #Required to display graphs in snort report UI
 
 print_status "Downloading and installing jpgraph.."
 
-cd /var/www
+cd /var/www/html
 
 wget http://jpgraph.net/download/download.php?p=5 -O jpgraph305.tar.gz &>> $sreport_logfile
 error_check 'jpgraph download'
@@ -97,8 +102,8 @@ print_status "Installing jpgraph.."
 tar -xzvf jpgraph305.tar.gz &>> $sreport_logfile
 error_check 'jpgraph installation'
 
-rm -rf jpgraph305.tar.gz &>> $sreport_logfile
-mv jpgraph-3* jpgraph &>> $sreport_logfile
+rm -rf jpgraph305.tar.gz
+mv jpgraph-3* jpgraph
 
 ########################################
 
@@ -107,19 +112,19 @@ mv jpgraph-3* jpgraph &>> $sreport_logfile
 print_status "downloading and installing Snort Report.."
 
 wget http://symmetrixtech.com/wp/wp-content/uploads/2014/09/snortreport-1.3.4.tar.gz &>> $sreport_logfile
-error_check 'snortreport download'
+error_check 'Snort Report download'
 
 tar -xzvf snortreport-1.3.4.tar.gz &>> $sreport_logfile
-error_check 'snortreport file installation'
+error_check 'Snort Report installation'
 
-rm -rf snortreport-1.3.4.tar.gz &>> $sreport_logfile
-mv /var/www/snortreport-1.3.4 /var/www/snortreport &>> $sreport_logfile
+rm -rf snortreport-1.3.4.tar.gz
+mv /var/www/html/snortreport-1.3.4 /var/www/html/snortreport
 
 ########################################
 
-print_status "Pointing Snort Report to the mysql database.."
+print_status "Pointing Snortreport to the mysql database.."
 
-sed -i "s/PASSWORD/$snort_mysql_pass/" /var/www/snortreport/srconf.php 
+sed -i "s/PASSWORD/$snort_mysql_pass/" /var/www/html/snortreport/srconf.php 
 
 print_good "Snort Report successfully configured to talk to mysql database."
 
@@ -134,7 +139,7 @@ print_good "Snort Report successfully configured to talk to mysql database."
 
 print_status "Fixing short open tags.."
 
-cd /var/www/snortreport
+cd /var/www/html/snortreport
 
 for s_open_file in `ls -1 *.php`; do 
 	sed -i 's#<?#<?php#g' $s_open_file
@@ -144,47 +149,60 @@ done
 
 print_good "Short open tags fixed."
 
-########################################
-
-#changing access to srconf.php -- the file is world-readable by default. I don't like that. Also, the files here should probably be owned by www-data.
-
-print_status "Setting file ownership for /var/www/snortreport, /var/www/jpgraph to www-data; making srconf.php read-only by www-data user and group.."
-
-chmod 400 /var/www/snortreport/srconf.php &>> $sreport_logfile
-
-chown -R www-data:www-data /var/www/snortreport &>> $sreport_logfile
-chown -R www-data:www-data /var/www/jpgraph &>> $sreport_logfile
-
-print_good "File permissions set."
 
 ########################################
+#Here we're making some virtual hosts in /etc/httpd/conf/httpd.conf to support SSL.
 
-#These are virtual host settings. The default virtual host forces redirect of all traffic to https (SSL, port 443) to ensure console traffic is encrypted and secure. We then enable the new SSL site we made, and restart apache to start serving it.
+print_status "Adding Virtual Host settings and reconfiguring httpd to use SSL.."
 
-print_status "Configuring Virtual Host Settings for Snort Report..."
+echo "" >> /etc/httpd/conf/httpd.conf
+echo "<IfModule mod_ssl.c>" >> /etc/httpd/conf/httpd.conf
+echo "	<VirtualHost *:443>" >> /etc/httpd/conf/httpd.conf
+echo "		#SSL Settings, including support for PFS." >> /etc/httpd/conf/httpd.conf
+echo "		SSLEngine on" >> /etc/httpd/conf/httpd.conf
+echo "		SSLCertificateFile /etc/httpd/ssl/ids.cert" >> /etc/httpd/conf/httpd.conf
+echo "		SSLCertificateKeyFile /etc/httpd/ssl/ids.key" >> /etc/httpd/conf/httpd.conf
+echo "		SSLProtocol all -SSLv2 -SSLv3" >> /etc/httpd/conf/httpd.conf
+echo "		SSLHonorCipherOrder on" >> /etc/httpd/conf/httpd.conf
+echo "		SSLCipherSuite \"EECDH+ECDSA+AESGCM EECDH+aRSA+AESGCM EECDH+ECDSA+SHA384 EECDH+ECDSA+SHA256 EECDH+aRSA+SHA384 EECDH+aRSA+SHA256 EECDH+aRSA+RC4 EECDH EDH+aRSA RC4 !aNULL !eNULL !LOW !3DES !MD5 !EXP !PSK !SRP !DSS\"" >> /etc/httpd/conf/httpd.conf
+echo "" >> /etc/httpd/conf/httpd.conf
+echo "		#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/httpd/conf/httpd.conf
+echo "		RewriteEngine On" >> /etc/httpd/conf/httpd.conf
+echo "		RewriteCond %{HTTPS} off" >> /etc/httpd/conf/httpd.conf
+echo "		RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/httpd/conf/httpd.conf
+echo "" >> /etc/httpd/conf/httpd.conf
+echo "		#Now, we finally get to configuring our VHOST." >> /etc/httpd/conf/httpd.conf
+echo "		ServerName snortreport.localhost" >> /etc/httpd/conf/httpd.conf
+echo "		DocumentRoot /var/www/html/snortreport" >> /etc/httpd/conf/httpd.conf
+echo "	</VirtualHost>" >> /etc/httpd/conf/httpd.conf
+echo "</IfModule>" >> /etc/httpd/conf/httpd.conf
 
-echo "#This is an SSL VHOST added by autosnort. Simply remove the file if you no longer wish to serve the web interface." > /etc/apache2/sites-available/snortreport-ssl
-echo "<VirtualHost *:443>" >> /etc/apache2/sites-available/snortreport-ssl
-echo "	#Turn on SSL. Most of the relevant settings are set in /etc/apache2/mods-available/ssl.conf" >> /etc/apache2/sites-available/snortreport-ssl
-echo "	SSLEngine on" >> /etc/apache2/sites-available/snortreport-ssl
-echo "" >> /etc/apache2/sites-available/snortreport-ssl
-echo "	#Mod_Rewrite Settings. Force everything to go over SSL." >> /etc/apache2/sites-available/snortreport-ssl
-echo "	RewriteEngine On" >> /etc/apache2/sites-available/snortreport-ssl
-echo "	RewriteCond %{HTTPS} off" >> /etc/apache2/sites-available/snortreport-ssl
-echo "	RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}" >> /etc/apache2/sites-available/snortreport-ssl
-echo "" >> /etc/apache2/sites-available/snortreport-ssl
-echo "	#Now, we finally get to configuring our VHOST." >> /etc/apache2/sites-available/snortreport-ssl
-echo "	ServerName snortreport.localhost" >> /etc/apache2/sites-available/snortreport-ssl
-echo "	DocumentRoot /var/www/snortreport" >> /etc/apache2/sites-available/snortreport-ssl
-echo "</VirtualHost>" >> /etc/apache2/sites-available/snortreport-ssl
+print_good "httpd reconfigured."
 
 ########################################
 
-a2ensite snortreport-ssl &>> $sreport_logfile
-error_check 'snortreport vhost'
+print_status "Reconfiguring SELinux Permissions to allow httpd r/w access to the snortreport directory.."
+cd /var/www/html
+chcon -R -t httpd_sys_rw_content_t snortreport/ &>> $sreport_logfile
+error_check 'SELinux permission reset'
 
-service apache2 restart &>> $sreport_logfile
-error_check 'Apache restart'
+########################################
+#This is to tighten file permissions on Snort Report files, especially srconf.php; it shouldn't be world-readable.
+
+print_status "Setting file ownership for /var/www/html/snortreport, /var/www/html/jpgraph to apache; making srconf.php read-only by apache user and group.."
+
+chown -R apache:apache /var/www/html/snortreport &>> $sreport_logfile
+error_check 'Snort Report file ownership reset'
+
+chown -R apache:apache /var/www/html/jpgraph &>> $sreport_logfile
+error_check 'JPGraph file ownership reset'
+
+chmod 400 /var/www/html/snortreport/srconf.php &>> $sreport_logfile
+error_check 'srconf.php file permission reset'
+
+service httpd restart &>> $sreport_logfile
+error_check 'httpd restart'
+
 
 print_notification "The log file for this interface installation is located at: $sreport_logfile"
 
