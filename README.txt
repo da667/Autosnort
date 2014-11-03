@@ -7,7 +7,12 @@ email: deusexmachina667 [at] gmail [dot] com
 
 Autosnort is a series of bash shell scripts designed to install a fully functional, fully updated stand-alone snort sensor with an IDS event review console of your choice, on a variety of Linux distributions. The script is very meticulously commented in order for users to fully understand all the changes the script performs on a given system. That way if a user wants to make their own customizations, or gain a better understanding of the install process, that information is present.
 
-I chose to write Autosnort as an alternative to other IDS solutions such as security onion, insta-snorby, etc. as a way for me to learn shell scripting a bit better, while granting snort users of any proficiency the capability to install the latest and greatest version of snort and its components as soon as they become available with as little muss and fuss as possible -- with only the interfaces or features they desired, on an operating system they want to use. As it stands right now, Autosnort supports Ubuntu 12.04+ (and its derivatives), Debian (6+ and it's derivatives), and CentOS (6+ and it's derivatives [including RHEL]), with support for additional operating systems to be added as requested.
+I chose to write Autosnort as an alternative to other IDS solutions such as security onion, insta-snorby, etc. as a way for me to learn shell scripting a bit better, while granting snort users of any proficiency the capability to install the latest and greatest version of snort and its components as soon as they become available with as little muss and fuss as possible -- with only the interfaces or features they desired, on an operating system they want to use. As it stands right now, Autosnort supports the followin major linux distributions and versions:
+
+-Ubuntu 12.X and 14.x
+-Debian 6.x and 7.x
+-CentOS 6.x and 7.x
+-Kali Linux
 
 All this being said.. I am _NOT_ claiming that Autosnort is better than any other IDS solution. Open-source is all about freedom of choice, simply consider Autosnort another option when you need to stand up an IDS sensor quickly and easily.
 
@@ -16,11 +21,11 @@ If you feel that this script is not as robust as it can be, is missing key featu
 
 Autosnort will:
 
-1. Install the latest versions of Snort, Barnyard2, DAQ (Data Acquisition) Libraries as well as any other required repositories and pre-reqs for all of Snort's components.
+1. Install the latest versions of Snort, Barnyard2, DAQ (Data Acquisition) Libraries as well as any other required repositories and pre-reqs for all of Snort's components automatically with no user input required (beyond filling out a configuration file)
 
 2. Automatically downloads pulled pork and uses it to pull down the latest available rules for your version of Snort, so long as you have a valid Oink Code -- Doesn't matter if it's a registered user or VRT subscription Oink Code. Don't have or know what an oink code is? Visit snort.org, register on their website and login. There's an option to display your oink code once you log in.
 
-3. Gives the user a choice between a variety of IDS event console installation choices. Autosnort handles installation of pre-req packages for the console, configuration files, as well as configuring Apache to serve Web-Based IDS event consoles over HTTPS. You may choose among the following:
+3. Can automatically install a variety of IDS event consoles/output mechanisms. Autosnort handles installation of pre-req packages for the console, configuration files, as well as configuring Apache to serve Web-Based IDS event consoles over HTTPS. You may choose among the following:
 
 --Symmetrix Technologies' SnortReport web interface
 --Threat Stack's Snorby web interface
@@ -37,31 +42,42 @@ Requirements:
 
 2. Root/sudo access -- several system-wide changes are made with Autosnort. as such, root privileges are required.
 
-3. A minimum of two network interfaces is recommended. Autosnort dedicates one interface solely to sniffing traffic. This interface will NOT respond to any service requests at all. As such, a second physical interface is needed to remotely administer the sensor. If you cannot acquire a second network interface card, simply edit /etc/rc.local and remove the "-noarp" option from the ifconfig command in that file. This isn't recommended, but it'll do. Get a second network card!
+3. A minimum of two network interfaces is recommended. Autosnort dedicates one interface solely to sniffing traffic. This interface will NOT respond to any service requests at all, but this can easily be modified if you only have a single network interface. Get a second network card, if at all possible!
 
 4.SSH/Secure remote access to the system for remote system administration is very highly recommended, but not absolutely necessary, if you have console access.
 
 Here are the instructions to run the Autosnort:
 
-1. copy the Autosnort-[os]-[date].sh to the /root directory of your operating system [e.g. Autosnort-ubuntu-07-21-2014.sh]
+1. Edit the full_autosnort.conf file to reflect your installation requirements. At a minimum you will need to provide a password for the ROOT mysql user and the SNORT mysql user and finally a valid oink code for snort.org. By default, the config file will install mysql, httpd, snorby, snort, barnyard2 and init/systemd scripts. Snort will run on eth1. If you wish to change the default settings, the configuration file has tons of comments to help you along the way. There is a separate full_autosnort.conf for each operating system.
+2. Run autosnort-ubuntu-mm-dd-yyyy.sh script. By default, all of the files necessary to run autosnort are in the same directory. At a minimum, the script requires full_autosnort.conf, snortbarn (init/systemd script) and the interface install script (for example, autosnorby-ubuntu) to be in the SAME directory. By default, all the files required are in the same directory.
+Note: If you are installing aanval, you will also need the aanvalbpu (init/systemd script) to be in the same directory as well.
+3. Run the autosnort-os-mm-dd-yyyy.sh script:
+as root:
+bash autosnort-os-mm-dd-yyyy.sh
+alternatively:
+chmod u+x autosnort-os-mm-dd-yyyy.sh;./autosnort-ubuntu-mm-dd-yyyy.sh
+via sudo:
+sudo bash autosnort-os-mm-dd-yyyy.sh
+4. The script should run completely without any user input. If there are any problems, the scripts log command output in the following locations:
+/var/log/autosnort_install.log
+/var/log/base_install.log
+/var/log/snortreport_install.log
+/var/log/snorby_install.log
+/var/log/aanval_install.log
 
-2. copy the [webinterface]-[os].sh script to the /root directory [e.g. snorby-ubuntu.sh]
+Contact me with a copy of any of the above log files and I'll do what I can to assist you.
 
-3. run the Autosnort-[os]-[date].sh script as the root user [e.g. as root, type "bash /root/Autosnort-[os]-[date].sh" or "cd /root && chmod u+x Autosnort-[os]-[date].sh && ./Autosnort-[os]-[date].sh" or run either of the following via sudo...]
+Note: After the installation is complete, either secure the full_autosnort.conf file, or delete it to ensure the root and/or snort database user's passwords are secured.
 
-4. There are a series of prompts that the script will ask during execution. It should be very straight-forward what the script is asking for (e.g. mysql password, oink code, etc.). Simply answer the questions as they come, and the script handles the rest.
-
-5. The script gives you the option of rebooting your system after the installation is complete. In some cases it's necessary for some web interface components to register or work correctly. In all cases I highly recommend rebooting your system, especially if system updates downloaded and made a new kernel available for your system. When the system has rebooted, snort, barnyard, and the interface of your choice should be running flawlessly.
-
-snort is installed under: /usr/local/snort/
+snort is installed under: /opt/snort (by default, but can be user-modified)
 
 barnyard2 is installed under: /usr/local/bin
 
 pulledpork is installed under: /usr/src
 
-snort.conf and barnyard2.conf are located under: /usr/local/snort/etc
+snort.conf and barnyard2.conf are located under: /opt/snort/etc
 
-web interfaces are installed under: /var/www (ubuntu, debian) or /var/www/html (centOS/RHEL)
+web interfaces are installed under: /var/www (ubuntu, debian, kali) or /var/www/html (centOS/RHEL)
 
 TO-DO List:
 
