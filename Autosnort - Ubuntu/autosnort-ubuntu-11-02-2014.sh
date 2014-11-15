@@ -137,14 +137,14 @@ fi
 
 print_status "Checking for config file.."
 execdir=`pwd`
-if [ ! -f $execdir/full_autosnort.conf ]; then
+if [ ! -f "$execdir/full_autosnort.conf" ]; then
 	print_error "full_autosnort.conf was NOT found in $execdir. The script relies HEAVILY on this config file. Please make sure it is in the same directory you are executing the full-autosnort-kali script!"
 	exit 1
 else
 	print_good "Found config file."
 fi
 
-source $execdir/full_autosnort.conf
+source "$execdir/full_autosnort.conf"
 
 ########################################
 
