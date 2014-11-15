@@ -137,14 +137,14 @@ fi
 
 print_status "Checking for config file.."
 execdir=`pwd`
-if [ ! -f $execdir/full_autosnort.conf ]; then
+if [ ! -f "$execdir/full_autosnort.conf" ]; then
 	print_error "full_autosnort.conf was NOT found in $execdir. The script relies HEAVILY on this config file. Please make sure it is in the same directory you are executing the full-autosnort-kali script!"
 	exit 1
 else
 	print_good "Found config file."
 fi
 
-source $execdir/full_autosnort.conf
+source "$execdir/full_autosnort.conf"
 
 ########################################
 
@@ -777,11 +777,11 @@ ethtool -K $snort_iface lro off &>> $logfile
 ########################################
 #Finally got around doing service persistence the right way. We check to see if the init script is already installed. If it isn't we verify the user has the init script in the right place for us to copy, then copy it into place.
 
-cd $execdir
+cd "$execdir"
 if [ -f /etc/init.d/snortbarn ]; then
 	print_notification "Snortbarn init script already installed."
 else
-	if [ ! -f $execdir/snortbarn ]; then
+	if [ ! -f "$execdir/snortbarn" ]; then
 		print_error" Unable to find $execdir/snortbarn. Please ensure snortbarn file is there and try again."
 		exit 1
 	else
@@ -803,7 +803,7 @@ fi
 ########################################
 #Perform the interface installation step here. first, we drop back to the initial working directory where autosnort was ran from.
 
-cd $execdir
+cd "$execdir"
 
 case $ui_choice in
 	1)

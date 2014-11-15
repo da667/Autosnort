@@ -64,11 +64,11 @@ fi
 #The config file should be in the same directory that snorby script is exec'd from. This shouldn't fail, but if it does..
 
 execdir=`pwd`
-if [ ! -f $execdir/full_autosnort.conf ]; then
+if [ ! -f "$execdir/full_autosnort.conf" ]; then
 	print_error "full_autosnort.conf was NOT found in $execdir. This script relies HEAVILY on this config file. The main autosnort script, full_autosnort.conf and this file should be located in the SAME directory."
 	exit 1
 else
-	source $execdir/full_autosnort.conf
+	source "$execdir/full_autosnort.conf"
 	print_good "Found config file."
 fi
 
@@ -156,11 +156,11 @@ cd /var/www/aanval/apps
 perl idsBackground.pl -start &>> $aanval_logfile
 error_check 'Execution of background processors'
 
-cd $execdir
+cd "$execdir"
 if [ -f /etc/init.d/aanvalbpu ]; then
 	print_notification "aanvalbpu init script already installed."
 else
-	if [ ! -f $execdir/aanvalbpu ]; then
+	if [ ! -f "$execdir/aanvalbpu" ]; then
 		print_error "The aanvalbpu file was not found in $execdir. Please make sure the file is there and try again."
 		exit 1
 	else
