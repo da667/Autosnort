@@ -1,0 +1,79 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides: snort_agent.tcl, sguild
+# Required-Start: $local_fs $remote_fs $network $named $syslog $time $snortbarn
+# Required-Stop: $local_fs $remote_fs $network $named $syslog $time $snortbarn
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: start and stop sguild, and sguil's snort_agent.tcl
+# Description: Sguil is a powerful set of scripts in TCL for managing NSM events.
+### END INIT INFO
+
+#Command line execution options for sguild
+OPTIONS="-c /opt/sguil/server/sguild.conf -C /opt/sguil/ssl"
+#Command line execution options for snort_agent.tcl
+OPTIONS2="-c /opt/sguil/sensor/snort_agent.conf"
+
+do_start()
+{
+    echo "Starting sguild and snort_agent"
+	cd /opt/sguil/server
+	sleep 10
+    tclsh sguild $OPTIONS
+        if [ $? -eq 0 ]; then
+                echo "Sguild successfully started."
+                logger "Sguild Started!"
+        else
+                echo "Sguild failed to start!"
+        fi
+	cd /opt/sguil/sensor
+	sleep 10
+	tclsh snort_agent.tcl $OPTIONS2
+        if [ $? -eq 0 ]; then
+                echo "snort_agent successfully started."
+                logger "snort_agent Started!"
+        else
+                echo "snort_agent failed to start!"
+        fi
+    return 0
+}
+
+do_status()
+{
+    echo "Listing tclsh processes:"
+	ps -ef | grep tcl
+}
+
+do_stop()
+{
+    echo "Stopping sguild and snort_agent"
+    kill `ps -ef | egrep "sguild|snort_agent" | egrep -v "egrep" | awk '{print $2}'|tr '\n' ' '` 2> /dev/null
+	if [ $? -eq 0 ]; then
+		echo "Sguid and snort_agent processes terminated."
+		logger "Killed sguild and snort_agent."
+	else
+		echo "Sguild and/or snort_agent could not be killed! (Permissions? Already dead?)"
+	fi
+    return 0
+}
+
+case "$1" in
+ start)
+    do_start
+    ;;
+ stop)
+    do_stop
+    ;;
+ restart)
+    do_stop
+    do_start
+    ;;
+ status)
+	do_status
+	;;
+ *)
+    echo "Usage: snortbarn {start|stop|restart|status}" >&2
+    exit 3
+    ;;
+esac
+exit 0

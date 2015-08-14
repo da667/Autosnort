@@ -27,11 +27,55 @@ Note: After the installation is complete, either secure the full_autosnort.conf 
 ##############################
 autosnort-Ubuntu Release Notes
 ##############################
-Codename:"Winter is Coming"
+Codename:"IM NOT DEAD YET! I FEEL HAPPY!"
 
-Massive updates all around!
+It works again! Also: new features!
 
-Current Release:autosnort-ubuntu-11-02-2014.sh
+Current Release:autosnort-ubuntu-08-11-15-2013
+
+autosnort-ubuntu changes:
+-the installer uses libdumbnet-dev ubuntu package, and through creative symlinking (dumbnet.h to dnet.h) it works just fine. This means no longer having to download and compile libdnet from source anymore.
+-the installer also installs git as a core requirement package
+-I heard from a little bird that labs.snort.org is being phased out. It'll likely be a slow phaseout, but.. Snort.org hosts sample snort.conf files now for all supported versions of Snort. the script has been updated to reflect this and will use these sample configuration files instead.
+-verified support with Ubuntu 14.04
+-script now supports installing sguil (sguild and snort_agent)
+
+autosguil script changes:
+
+-Initial version. This script handles a TON of tasks
+--Acquires tcl8.5-dev source package, and recompiles the packages without threading support. This is because sguil CANNOT use builds of TCL with threading enabled.
+---These compiled packages (libtcl8.5, tcl8.5, and tcl8.5-dev) are also marked as "held back". If they aren't marked as held back, and the system decides to helpfully upgrade them, sguil will break, because ubuntu will grab the TCL build from their repositories that are built with threading enabled.
+--The script recompiles barnyard2 with tcl support in order to support the sguil output mechanism. support for mysql (--with-mysql) is still built in as well in the event the user needs mysql support.
+--The script configures sguild and snort_agent.tcl, installing all pre-requisites, and generating skeleton configuration files. 
+---Sguil and all of its components are installed under "/opt/sguil"
+---This also includes a PEM file in /opt/sguil/ssl that sguild requires to even run.
+--This script also installs an init script to control execution of snort_agent and sguild. the init script is called "initsguil" and supports the "start", "stop", "status", and "restart" options to control execution of both sguild and snort_agent
+---as with the standard init script snortbarn, this init script MUST be in the same direction as the main autosnort script for the installation to complete successfully.
+-At this time, this script assumes that barnyard2, sguild, and snort_agent are all on the same system. I'll likely add support to change this later, and/or support to just install barnyard2 and snort_agent as a part of a distributed sguil installation. 
+
+Bug Fixes:
+-fixed a bug in which the script would not properly handle autosnort being executed from directories with a space in the name... like, the default directory structure autosnort ships in. I can't facepalm hard enough.
+-fixed an issue where the script broke on snort.org again, presumably due to url restructuring on the site breaking autosnort's text manipulation to determine the latest versions of DAQ and Snort.
+-fixed an issue where snort doesn't seem to compile anymore without a "--libdir" argument during "./configure"
+-fixed a bug where I made a snort_dynamicrules directory in one place, told snort to expect/place the shared object rule libraries in one place, then told pulledpork something totally different. This would cause snort/pulledpork to silently fail to implement and utilize SO rules.
+
+Other Issues:
+-Snorby. I've had a love/hate relationship with Snorby. Mainly hate. Snorby has not been regularly updated and has a number of deficincies associated with it. I'm not saying the alternatives are perfect, but here are my findings:
+--Still uses the Rails 3 framework.. which no longer gets any maintenance updates. That means vulns found will never get patched
+--Still requires Ruby 1.9.x
+---rubygems.org and RVM no longer support the installation or download of ruby 1.9.x. At all. Period. You literally have to install ruby 1.9.x from the OS package repos and even then, THATS not supported.
+---attempts to modernize Snorby to ruby 2.2.x were met with failure due to massive gem dependency failures (e.g. using 3+ year old gems designed to work with a ruby interpreter that's two major versions old on a brand-new interpreter does NOT go well), and some regex changes (that I actually managed to fix)
+---attempts to modernize Snorby to ruby 2.1.x also met with gem dependency and regex problems. I fixed them, then the rake snorby:setup broke on creating the database.
+---I did not attempt to modernize snorby to ruby 2.0.x because it's considered "old stable" and is at the End of Life door as it is, likely to have support dropped at any point.
+--Is no longer being actively developed on, with only security updates being supplied. (This is per the Snorby-users mailing list)
+-It is with a heavy heart that I announce that I can no longer endorse this project, and I will no longer support it. Are there projects I support that are older? Yes. But at least they're functional.
+--The scripts will remain and if there is enough demand, I could probably try to rig something together, but let me state for the record that this is a bad idea.
+
+-Since sguil automation seems to work, I'm probably going to build another script to install squert as well. I don't think this should be too difficult.
+##################
+Previous Releases
+##################
+autosnort-ubuntu-11-02-2014.sh
 
 autosnort-ubuntu changes:
 
@@ -70,9 +114,6 @@ Other notes:
 -- the web interface script you wish to install
 -- IF you are installing aanval as your event review interface: You must also have the aanvalbpu init script in the same directory as well.
 
-##################
-Previous Releases
-##################
 autosnort-ubuntu-08-25-2014
 
 annoying bug was annoying. *squash*
