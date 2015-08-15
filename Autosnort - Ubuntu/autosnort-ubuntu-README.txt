@@ -18,6 +18,7 @@ sudo bash autosnort-ubuntu-mm-dd-yyyy.sh
 /var/log/snortreport_install.log
 /var/log/snorby_install.log
 /var/log/aanval_install.log
+/var/log/sguil_install.log
 
 Contact deusexmachina667 at gmail dot com with a copy of any of the above log files and I'll do what I can to assist you.
 
