@@ -140,12 +140,15 @@ fi
 
 git clone https://github.com/bammv/sguil.git &>> $sguil_logfile
 
+print_status "Setting up sguil database infrastructure"
 mysql -uroot -p$root_mysql_pass -e "drop database if exists sguil; create database if not exists sguil; show databases;" &>> $sguil_logfile
+error_check 'sguil database creation'
 mysql -uroot -p$root_mysql_pass -e "grant all privileges on sguil.* to snort@localhost identified by '$snort_mysql_pass';" &>> $sguil_logfile
+error_check 'snort user access for sguil database'
 mysql -uroot -p$snort_mysql_pass -D sguil < /opt/sguil/server/sql_scripts/create_sguildb.sql &>> $sguil_logfile
-mysql -uroot -p$snort_mysql_pass -D sguil < /opt/sguil/server/create_ruledb.sql &>> $sguil_logfile
+error_check 'sguil db table add'
 
-print_status "Checking for snort user and group.."
+print_status "Checking for sguil user and group.."
 
 getent passwd sguil &>> $sguil_logfile
 if [ $? -eq 0 ]; then
