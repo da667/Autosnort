@@ -152,7 +152,7 @@ print_status "Checking for sguil user and group.."
 
 getent passwd sguil &>> $sguil_logfile
 if [ $? -eq 0 ]; then
-	print_notificiation "sguil user exists. Verifying group exists.."
+	print_notification "sguil user exists. Verifying group exists.."
 	id -g sguil &>> $sguil_logfile
 	if [ $? -eq 0 ]; then
 		print_notification "sguil group exists."
