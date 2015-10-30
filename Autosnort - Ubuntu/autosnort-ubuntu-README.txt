@@ -28,12 +28,18 @@ Note: After the installation is complete, either secure the full_autosnort.conf 
 ##############################
 autosnort-Ubuntu Release Notes
 ##############################
-Codename:"IM NOT DEAD YET! I FEEL HAPPY!"
 
-It works again! Also: new features!
+Current Release:autosnort-ubuntu-10-30-15-2015
 
-Current Release:autosnort-ubuntu-08-11-15-2013
+autosnort-ubuntu changes:
+-snort.org changed the rule_urls for the community ruleset as well as the IP blacklist set. This  made pulledpork angry. Fixed this.
+-speaking of pulledpork, we're finally pulling it from github, since googlecode has been "dead" for a while now.
 
+Current Release:autosnort-ubuntu-08-11-15-2015
+
+##################
+Previous Releases
+##################
 autosnort-ubuntu changes:
 -the installer uses libdumbnet-dev ubuntu package, and through creative symlinking (dumbnet.h to dnet.h) it works just fine. This means no longer having to download and compile libdnet from source anymore.
 -the installer also installs git as a core requirement package
@@ -73,9 +79,7 @@ Other Issues:
 --The scripts will remain and if there is enough demand, I could probably try to rig something together, but let me state for the record that this is a bad idea.
 
 -Since sguil automation seems to work, I'm probably going to build another script to install squert as well. I don't think this should be too difficult.
-##################
-Previous Releases
-##################
+
 autosnort-ubuntu-11-02-2014.sh
 
 autosnort-ubuntu changes:
