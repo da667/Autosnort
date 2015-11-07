@@ -69,9 +69,9 @@ function pp_postprocessing()
 {
 
 print_good "Rules processed successfully. Rules located in $snort_basedir/rules."
-print_notification "Pulledpork is located in /usr/src/pulledpork-[pulledpork version]."
+print_notification "Pulledpork is located in /usr/src/pulledpork."
 print_notification "By default, Autosnort runs Pulledpork with the Security over Connectivity ruleset."
-print_notification "If you want to change how pulled pork operates and/or what rules get enabled/disabled, Check out the /usr/src/pulledpork-[pulledpork version]/etc directory, and the .conf files contained therein."
+print_notification "If you want to change how pulled pork operates and/or what rules get enabled/disabled, Check out the /usr/src/pulledpork/etc directory, and the .conf files contained therein."
 
 #This cleans up all the dummy files in the snort config file directory, with the exception of the ones we want the script to keep in place.
 for configs in `ls -1 $snort_basedir/etc/* | egrep -v "snort.conf|sid-msg.map"`; do
@@ -106,7 +106,7 @@ error_check 'crontab backup'
 print_status "Adding entry to /etc/crontab to run pulledpork Sunday at midnight (once weekly).."
 
 echo "#This line has been added by Autosnort to run pulledpork for the latest rule updates." >> /etc/crontab
-echo "  0  0  *  *  7  root /usr/src/pulledpork-*/pulledpork.pl -c /usr/src/pulledpork-*/etc/pulledpork.conf" >> /etc/crontab
+echo "  0  0  *  *  7  root /usr/src/pulledpork/pulledpork.pl -c /usr/src/pulledpork/etc/pulledpork.conf" >> /etc/crontab
 
 print_notification "crontab has been modified. If you want to modify when pulled pork runs to check rule updates, modify /etc/crontab."
 
@@ -577,28 +577,28 @@ cp pulledpork.tmp pulledpork.conf
 
 #Run pulledpork. If the first rule download fails, the script waits 15 minutes before trying again, and so on until there are no other snort rule tarballs to attempt to download.
 
-cd /usr/src/pulledpork-*
+cd /usr/src/pulledpork
 	
 print_status "Attempting to download rules for $choice1 .."
-perl pulledpork.pl -c /usr/src/pulledpork-*/etc/pulledpork.conf -vv &>> $logfile
+perl pulledpork.pl -c /usr/src/pulledpork/etc/pulledpork.conf -vv &>> $logfile
 if [ $? == 0 ]; then
 	pp_postprocessing
 else
 	print_error "Rule download for $choice1 snort rules has failed. Waiting 15 minutes, then trying text-only rule download for $choice2.."
 	sleep 910
-	perl pulledpork.pl -S $choice2 -c /usr/src/pulledpork-*/etc/pulledpork.conf -T -vv &>> $logfile
+	perl pulledpork.pl -S $choice2 -c /usr/src/pulledpork/etc/pulledpork.conf -T -vv &>> $logfile
 	if [ $? == 0 ]; then
 		pp_postprocessing
 	else
 		print_error "Rule download for $choice2 snort rules has failed. Waiting 15 minutes, then trying text-only rule download $choice3.."
 		sleep 910
-		perl pulledpork.pl -S $choice3 -c /usr/src/pulledpork-*/etc/pulledpork.conf -T -vv &>> $logfile
+		perl pulledpork.pl -S $choice3 -c /usr/src/pulledpork/etc/pulledpork.conf -T -vv &>> $logfile
 		if [ $? == 0 ]; then
 			pp_postprocessing
 		else
 			print_error "Rule download for $choice3 has failed. Waiting 15 minutes, then trying text-only rule download for $choice4 (Final shot!)"
 			sleep 910
-			perl pulledpork.pl -S $choice4 -c /usr/src/pulledpork-*/etc/pulledpork.conf -T -vv &>> $logfile
+			perl pulledpork.pl -S $choice4 -c /usr/src/pulledpork/etc/pulledpork.conf -T -vv &>> $logfile
 			if [ $? == 0 ]; then
 				pp_postprocessing
 			else
