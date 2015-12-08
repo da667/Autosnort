@@ -29,17 +29,28 @@ Note: After the installation is complete, either secure the full_autosnort.conf 
 autosnort-Ubuntu Release Notes
 ##############################
 
-Current Release:autosnort-ubuntu-10-30-15-2015
+Current Release:autosnort-ubuntu-12-07-2015.sh
+
+autosnort-ubuntu bug fixes:
+
+-With the changes to pulledpork being hosted on github, I thought I had properly modified the execution directory for pulledpork everywhere in the script. Turns out this is not the case. I fixed this. I hope.
+
+-Made a few modifications in the script to /try/ to futureproof it against stupid problems in the future. The user shouldn't notice any difference.
+-- The script checks snort.org/documentation for the latest snort.conf files available.
+-- The script defaults to trying to install pulledpork rules tarballs for the current version of Snort installed (if this fails, it looks at snort.org and tries to pull text-only rules for one of the three versions available for download)
+
+##################
+Previous Releases
+##################
+
+autosnort-ubuntu-10-30-15-2015.sh
 
 autosnort-ubuntu changes:
 -snort.org changed the rule_urls for the community ruleset as well as the IP blacklist set. This  made pulledpork angry. Fixed this.
 -speaking of pulledpork, we're finally pulling it from github, since googlecode has been "dead" for a while now.
 
-Current Release:autosnort-ubuntu-08-11-15-2015
+autosnort-ubuntu-08-11-15-2015.sh 
 
-##################
-Previous Releases
-##################
 autosnort-ubuntu changes:
 -the installer uses libdumbnet-dev ubuntu package, and through creative symlinking (dumbnet.h to dnet.h) it works just fine. This means no longer having to download and compile libdnet from source anymore.
 -the installer also installs git as a core requirement package

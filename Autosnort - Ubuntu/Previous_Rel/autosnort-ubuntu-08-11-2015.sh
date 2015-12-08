@@ -536,20 +536,19 @@ print_good "snort.conf configured. location: $snort_basedir/etc/snort.conf"
 
 cd /usr/src
 
-if [ -d /usr/src/pulledpork ]; then
-	rm -rf /usr/src/pulledpork
-fi
-
 print_status "Acquiring Pulled Pork.."
 
-git clone https://github.com/shirkdog/pulledpork.git &>> $logfile
+wget http://pulledpork.googlecode.com/files/pulledpork-0.7.0.tar.gz -O pulledpork-0.7.0.tar.gz &>> $logfile
 error_check 'Download of pulledpork'
+
+tar -xzvf pulledpork-0.7.0.tar.gz &>> $logfile
+error_check 'Untar of pulledpork'
 
 print_good "Pulledpork successfully installed to /usr/src."
 
 print_status "Generating pulledpork.conf."
 
-cd pulledpork/etc
+cd pulledpork-*/etc
 
 #Create a copy of the original conf file (in case the user needs it), ask the user for an oink code, then fill out a really stripped down pulledpork.conf file with only the lines needed to run the perl script
 cp pulledpork.conf pulledpork.conf.orig
@@ -572,7 +571,7 @@ echo "config_path=$snort_basedir/etc/snort.conf" >> pulledpork.tmp
 echo "black_list=$snort_basedir/rules/black_list.rules" >>pulledpork.tmp
 echo "IPRVersion=$snort_basedir/rules/iplists" >>pulledpork.tmp	
 echo "ips_policy=security" >> pulledpork.tmp
-echo "version=0.7.2" >> pulledpork.tmp
+echo "version=0.7.0" >> pulledpork.tmp
 cp pulledpork.tmp pulledpork.conf
 
 #Run pulledpork. If the first rule download fails, the script waits 15 minutes before trying again, and so on until there are no other snort rule tarballs to attempt to download.
