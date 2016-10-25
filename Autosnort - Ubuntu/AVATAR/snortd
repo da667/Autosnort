@@ -1,0 +1,74 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides: snort
+# Required-Start: $local_fs $remote_fs $network $named $syslog $time
+# Required-Stop: $local_fs $remote_fs $network $named $syslog $time
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: start and stop snort
+# Description: Snort is a powerful open-source Intrusion Detection System.
+### END INIT INFO
+
+#The location of the snort binary
+SNORTD=snort_basedir/bin/snort
+#Command line execution options for snort
+OPTIONS="-D -u snort -g snort -c snort_basedir/etc/snort.conf -Q --daq afpacket --daq-mode inline -i snort_iface1:snort_iface2"
+
+do_start()
+{
+    echo "Starting Snort" 
+    /sbin/ifconfig snort_iface1 up -arp -multicast promisc
+	/sbin/ifconfig snort_iface2 up -arp -multicase promisc
+    $SNORTD $OPTIONS
+	if [ $? -eq 0 ]; then
+		echo "Snort successfully started."
+		logger "Snort Started!"
+	else
+		echo "Snort failed to start!"
+	fi
+    return 0
+}
+
+do_status()
+{
+	pidof snort
+	if [ $? -eq 0 ]; then		
+		echo "Snort is running with a pid of `pidof snort`"
+	else
+		echo "Snort is not running."
+	fi
+}
+
+do_stop()
+{
+    echo "Stopping Snort"
+    kill $(pidof snort) 2> /dev/null
+	if [ $? -eq 0 ]; then
+		echo "Snort successfully killed."
+		logger "Killed Snort."
+	else
+		echo "Snort could not be killed! (Permissions? Already dead?)"
+	fi
+    return 0
+}
+
+case "$1" in
+ start)
+    do_start
+    ;;
+ stop)
+    do_stop
+    ;;
+ restart)
+    do_stop
+    do_start
+    ;;
+ status)
+	do_status
+	;;
+ *)
+    echo "Usage: snortd {start|stop|restart|status}" >&2
+    exit 3
+    ;;
+esac
+exit 0
