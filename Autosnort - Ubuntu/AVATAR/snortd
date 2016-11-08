@@ -18,7 +18,7 @@ do_start()
 {
     echo "Starting Snort" 
     /sbin/ifconfig snort_iface1 up -arp -multicast promisc
-    /sbin/ifconfig snort_iface2 up -arp -multicase promisc
+    /sbin/ifconfig snort_iface2 up -arp -multicast promisc
     $SNORTD $OPTIONS
 	if [ $? -eq 0 ]; then
 		echo "Snort successfully started."
