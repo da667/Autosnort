@@ -395,12 +395,13 @@ echo "sid_msg_version=2" >> pulledpork.tmp
 echo "sid_changelog=/var/log/sid_changes.log" >> pulledpork.tmp
 echo "sorule_path=$snort_basedir/snort_dynamicrules/" >> pulledpork.tmp
 echo "snort_path=$snort_basedir/bin/snort" >> pulledpork.tmp
+echo "snort_version=$snortver" >> pulledpork.tmp
 echo "distro=Ubuntu-12-04" >> pulledpork.tmp
 echo "config_path=$snort_basedir/etc/snort.conf" >> pulledpork.tmp
 echo "black_list=$snort_basedir/rules/black_list.rules" >>pulledpork.tmp
 echo "IPRVersion=$snort_basedir/rules/iplists" >>pulledpork.tmp	
 echo "ips_policy=security" >> pulledpork.tmp
-echo "version=0.7.2" >> pulledpork.tmp
+echo "version=0.7.3" >> pulledpork.tmp
 cp pulledpork.tmp pulledpork.conf
 
 #Run pulledpork. If the first rule download fails, we try again, and so on until there are no other snort rule tarballs to attempt to download.
@@ -408,22 +409,22 @@ cp pulledpork.tmp pulledpork.conf
 cd /usr/src/pulledpork
 	
 print_status "Attempting to download rules for $snortver.."
-perl pulledpork.pl -c /usr/src/pulledpork/etc/pulledpork.conf -vv &>> $logfile
+perl pulledpork.pl -c /usr/src/pulledpork/etc/pulledpork.conf -W -vv &>> $logfile
 if [ $? == 0 ]; then
 	pp_postprocessing
 else
 	print_error "Rule download for $snortver has failed. Trying text-only rule download for $choice2.."
-	perl pulledpork.pl -S $choice2 -c /usr/src/pulledpork/etc/pulledpork.conf -T -vv &>> $logfile
+	perl pulledpork.pl -S $choice2 -c /usr/src/pulledpork/etc/pulledpork.conf -W -T -vv &>> $logfile
 	if [ $? == 0 ]; then
 		pp_postprocessing
 	else
 		print_error "Rule download for $choice2 has failed. Trying text-only rule download $choice3.."
-		perl pulledpork.pl -S $choice3 -c /usr/src/pulledpork/etc/pulledpork.conf -T -vv &>> $logfile
+		perl pulledpork.pl -S $choice3 -c /usr/src/pulledpork/etc/pulledpork.conf -W -T -vv &>> $logfile
 		if [ $? == 0 ]; then
 			pp_postprocessing
 		else
 			print_error "Rule download for $choice3 has failed. Trying text-only rule download for $choice4 (Final shot!)"
-			perl pulledpork.pl -S $choice4 -c /usr/src/pulledpork/etc/pulledpork.conf -T -vv &>> $logfile
+			perl pulledpork.pl -S $choice4 -c /usr/src/pulledpork/etc/pulledpork.conf -W -T -vv &>> $logfile
 			if [ $? == 0 ]; then
 				pp_postprocessing
 			else
