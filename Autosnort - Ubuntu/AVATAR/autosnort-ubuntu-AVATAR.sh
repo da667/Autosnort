@@ -428,7 +428,7 @@ else
 			if [ $? == 0 ]; then
 				pp_postprocessing
 			else
-				print_error "Rule download for $choice4 has failed; Either you've downloaded rules for another sensor from the same public IP address in the last 15 minutes, your Oink Code is invalid, or you have another issue. Check $logfile, Troubleshoot your connectivity issues to snort.org, and ensure you wait a minimum of 15 minutes before trying again."
+				print_error "Rule download for $choice4 has failed\; Either you've downloaded rules for another sensor from the same public IP address in the last 15 minutes, your Oink Code is invalid, or you have another issue. Check $logfile, Troubleshoot your connectivity issues to snort.org, and ensure you wait a minimum of 15 minutes before trying again."
 				exit 1
 			fi
 		fi
