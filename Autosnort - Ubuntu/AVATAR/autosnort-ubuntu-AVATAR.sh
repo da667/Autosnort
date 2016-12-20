@@ -423,7 +423,7 @@ else
 		if [ $? == 0 ]; then
 			pp_postprocessing
 		else
-			print_error "Rule download for $choice3 has failed. Trying text-only rule download for $choice4 (Final shot!)"
+			print_error "Rule download for $choice3 has failed. Trying text-only rule download for $choice4 \(Final shot!\)"
 			perl pulledpork.pl -S $choice4 -c /usr/src/pulledpork/etc/pulledpork.conf -W -T -vv &>> $logfile
 			if [ $? == 0 ]; then
 				pp_postprocessing
