@@ -423,12 +423,12 @@ else
 		if [ $? == 0 ]; then
 			pp_postprocessing
 		else
-			print_error "Rule download for $choice3 has failed. Trying text-only rule download for $choice4 (Final shot!)"
+			print_error "Rule download for $choice3 has failed. Trying text-only rule download for $choice4 \(Final shot!\)"
 			perl pulledpork.pl -S $choice4 -c /usr/src/pulledpork/etc/pulledpork.conf -W -T -vv &>> $logfile
 			if [ $? == 0 ]; then
 				pp_postprocessing
 			else
-				print_error "Rule download for $choice4 has failed; Either you've downloaded rules for another sensor from the same public IP address in the last 15 minutes, your Oink Code is invalid, or you have another issue. Check $logfile, Troubleshoot your connectivity issues to snort.org, and ensure you wait a minimum of 15 minutes before trying again."
+				print_error "Rule download for $choice4 has failed. Check $logfile, Troubleshoot your connectivity issues to snort.org, and ensure you wait a minimum of 15 minutes before trying again."
 				exit 1
 			fi
 		fi

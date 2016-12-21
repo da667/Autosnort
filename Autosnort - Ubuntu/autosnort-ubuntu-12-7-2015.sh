@@ -575,7 +575,7 @@ echo "config_path=$snort_basedir/etc/snort.conf" >> pulledpork.tmp
 echo "black_list=$snort_basedir/rules/black_list.rules" >>pulledpork.tmp
 echo "IPRVersion=$snort_basedir/rules/iplists" >>pulledpork.tmp	
 echo "ips_policy=security" >> pulledpork.tmp
-echo "version=0.7.2" >> pulledpork.tmp
+echo "version=0.7.3" >> pulledpork.tmp
 cp pulledpork.tmp pulledpork.conf
 
 #Run pulledpork. If the first rule download fails, we try again, and so on until there are no other snort rule tarballs to attempt to download.
