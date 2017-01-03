@@ -172,9 +172,9 @@ error_check 'System updates'
 
 #These packages are required at a minimum to build snort and barnyard + their component libraries
 
-print_status "Installing base packages: libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libcrypt-ssleay-perl libwww-perl zlib1g-dev.."
+print_status "Installing base packages: libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libcrypt-ssleay-perl liblzma-dev libwww-perl zlib1g-dev.."
 
-declare -a packages=( libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libcrypt-ssleay-perl libwww-perl zlib1g-dev );
+declare -a packages=( libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libcrypt-ssleay-perl liblzma-dev libwww-perl zlib1g-dev );
 install_packages ${packages[@]}
 
 #Ubuntu and Debian-based distros renamed libdnet to libdumbnet due to a library conflict. We create a symlink from libdumbnet.h to libdnet.h because barnyard 2 is expecting to find dnet.h, and does NOT look for dumbnet.h 
