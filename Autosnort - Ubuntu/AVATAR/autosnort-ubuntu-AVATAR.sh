@@ -199,16 +199,16 @@ error_check 'Download of snort.org index page'
 wget https://www.snort.org/configurations -O /tmp/snort_conf &> $logfile
 error_check 'Download of snort.conf examples page'
 
-snorttar=`grep -o snort-[0-9]\.[0-9]\.[0-9]\.[0-9].tar.gz /tmp/snort | head -1`
+#had to change the regex for snorttar -- used to be that the snort-x.x.x.x.tar.gz file would have exactly four digits (each x is one digit). Snort 2.9.11 has change that -- not only can new versions only have three digits, the minor version number is now in the double digits -- which is something I never encountered, so I never coded for it
+
+snorttar=`egrep -o "snort-([0-9]+\.?){3,}\.tar\.gz" /tmp/snort | head -1`
 daqtar=`egrep -o "daq-.*.tar.gz" /tmp/snort | head -1 | cut -d"<" -f1`
 snortver=`echo $snorttar | sed 's/.tar.gz//g'`
 daqver=`echo $daqtar | sed 's/.tar.gz//g'`
 
 choice1conf=`egrep -o "snort-.*-conf" /tmp/snort_conf | sort -ru | head -1` #snort.conf download attempt 1
-choice2conf=`egrep -o "snort-.*-conf" /tmp/snort_conf | sort -ru | head -2 | tail -1` #snort.conf download attempt 2
-choice2=`grep snortrules-snapshot-[0-9][0-9][0-9][0-9] /tmp/snort |cut -d"-" -f3 |cut -d"." -f1 | sort -ru | head -1 | sed -e 's/[[:digit:]]\{3\}/&./'| sed -e 's/[[:digit:]]\{2\}/&./' | sed -e 's/[[:digit:]]/&./'` #pp config choice 1
-choice3=`grep snortrules-snapshot-[0-9][0-9][0-9][0-9] /tmp/snort |cut -d"-" -f3 |cut -d"." -f1 | sort -ru | head -2 | tail -1 | sed -e 's/[[:digit:]]\{3\}/&./'| sed -e 's/[[:digit:]]\{2\}/&./' | sed -e 's/[[:digit:]]/&./'` #pp config choice 2
-choice4=`grep snortrules-snapshot-[0-9][0-9][0-9][0-9] /tmp/snort |cut -d"-" -f3 |cut -d"." -f1 | sort -ru | head -3 | tail -1 | sed -e 's/[[:digit:]]\{3\}/&./'| sed -e 's/[[:digit:]]\{2\}/&./' | sed -e 's/[[:digit:]]/&./'`
+choice2conf=`egrep -o "snort-.*-conf" /tmp/snort_conf | sort -ru | head -2 | tail -1` #snort.conf download 
+
 
 rm /tmp/snort
 rm /tmp/snort_conf
@@ -382,6 +382,16 @@ cd pulledpork/etc
 #Create a copy of the original conf file (in case the user needs it), ask the user for an oink code, then fill out a really stripped down pulledpork.conf file with only the lines needed to run the perl script
 cp pulledpork.conf pulledpork.conf.orig
 
+#Okay, so not only does the new filename format on snort.org for the snort tarballs allow three digits, pulledpork is expect 4 digits, separated by 3 periods. For example, If the current snort version is 2.9.11, you need to specify snort version 2.9.11.0 in pulledpork for it to figure out what version of snort you want to download rules for. So I made this little work-around: IF there are only two periods in the "snortver" variable, that means that I will need to add a trailing ".0" otherwise, pulledpork should be fine. Unfortunately, This value had to be stored in a new variable "ppsnortver" because other parts of the script rely on "snortver" variable not being modified from its original format to work properly.
+
+snortverperiods=`echo $snortver | fgrep -o . | wc -l`
+if [ $snortverperiods -eq 2 ]; then
+    ppsnortver=$snortver.0
+else
+    ppsnortver=$snortver
+fi
+
+
 echo "rule_url=https://www.snort.org/reg-rules/|snortrules-snapshot.tar.gz|$o_code" > pulledpork.tmp
 echo "rule_url=https://www.snort.org/reg-rules/|opensource.gz|$o_code" >> pulledpork.tmp
 echo "rule_url=https://snort.org/downloads/community/|community-rules.tar.gz|Community" >> pulledpork.tmp
@@ -395,7 +405,7 @@ echo "sid_msg_version=1" >> pulledpork.tmp
 echo "sid_changelog=/var/log/sid_changes.log" >> pulledpork.tmp
 echo "sorule_path=$snort_basedir/snort_dynamicrules/" >> pulledpork.tmp
 echo "snort_path=$snort_basedir/bin/snort" >> pulledpork.tmp
-echo "snort_version=`echo $snortver | cut -d'-' -f2`" >> pulledpork.tmp
+echo "snort_version=`echo $ppsnortver | cut -d'-' -f2`" >> pulledpork.tmp
 echo "distro=Ubuntu-12-04" >> pulledpork.tmp
 echo "config_path=$snort_basedir/etc/snort.conf" >> pulledpork.tmp
 echo "black_list=$snort_basedir/rules/black_list.rules" >>pulledpork.tmp
@@ -408,31 +418,14 @@ cp pulledpork.tmp pulledpork.conf
 
 cd /usr/src/pulledpork
 	
-print_status "Attempting to download rules for $snortver.."
+print_status "Attempting to download rules for $ppsnortver.."
+print_notification "If this hangs, please make sure you set the HTTP_PROXY, http_proxy, HTTPS_PROXY, and https_proxy variables as required!"
 perl pulledpork.pl -c /usr/src/pulledpork/etc/pulledpork.conf -W -vv &>> $logfile
 if [ $? == 0 ]; then
 	pp_postprocessing
 else
-	print_error "Rule download for $snortver has failed. Trying text-only rule download for $choice2.."
-	perl pulledpork.pl -S $choice2 -c /usr/src/pulledpork/etc/pulledpork.conf -W -T -vv &>> $logfile
-	if [ $? == 0 ]; then
-		pp_postprocessing
-	else
-		print_error "Rule download for $choice2 has failed. Trying text-only rule download $choice3.."
-		perl pulledpork.pl -S $choice3 -c /usr/src/pulledpork/etc/pulledpork.conf -W -T -vv &>> $logfile
-		if [ $? == 0 ]; then
-			pp_postprocessing
-		else
-			print_error "Rule download for $choice3 has failed. Trying text-only rule download for $choice4 \(Final shot!\)"
-			perl pulledpork.pl -S $choice4 -c /usr/src/pulledpork/etc/pulledpork.conf -W -T -vv &>> $logfile
-			if [ $? == 0 ]; then
-				pp_postprocessing
-			else
-				print_error "Rule download for $choice4 has failed. Check $logfile, Troubleshoot your connectivity issues to snort.org, and ensure you wait a minimum of 15 minutes before trying again."
-				exit 1
-			fi
-		fi
-	fi
+	print_error "Rule download for $ppsnortver has failed. Check $logfile, Troubleshoot your connectivity issues to snort.org, and ensure you wait a minimum of 15 minutes before trying again."
+	exit 1
 fi
 
 ########################################
