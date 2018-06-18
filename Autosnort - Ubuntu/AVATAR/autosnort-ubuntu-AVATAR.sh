@@ -392,8 +392,8 @@ else
 fi
 
 
-echo "rule_url=https://www.snort.org/reg-rules/|snortrules-snapshot.tar.gz|$o_code" > pulledpork.tmp
-echo "rule_url=https://www.snort.org/reg-rules/|opensource.gz|$o_code" >> pulledpork.tmp
+echo "rule_url=https://www.snort.org/rules/|snortrules-snapshot.tar.gz|$o_code" > pulledpork.tmp
+echo "rule_url=https://www.snort.org/rules/|opensource.gz|$o_code" >> pulledpork.tmp
 echo "rule_url=https://snort.org/downloads/community/|community-rules.tar.gz|Community" >> pulledpork.tmp
 echo "rule_url=http://talosintel.com/feeds/ip-filter.blf|IPBLACKLIST|open" >> pulledpork.tmp
 echo "ignore=deleted.rules,experimental.rules,local.rules" >> pulledpork.tmp
