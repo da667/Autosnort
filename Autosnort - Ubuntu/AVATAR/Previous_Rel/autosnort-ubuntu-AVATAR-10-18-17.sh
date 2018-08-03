@@ -170,35 +170,12 @@ error_check 'System updates'
 
 ########################################
 
-#Need to do an OS version check.
+#These packages are required at a minimum to build snort and barnyard + their component libraries
 
-print_status "OS Version Check.."
-release=`lsb_release -r|awk '{print $2}'`
-if [[ $release == "16."* || "18."* ]]; then
-	print_good "OS is Ubuntu. Good to go."
-else
-    print_notification "This is not Ubuntu 16.x or 18.x, this script has NOT been tested on other platforms."
-	print_notification "You continue at your own risk!(Please report your successes or failures!)"
-fi
+print_status "Installing base packages: libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libcrypt-ssleay-perl liblzma-dev libwww-perl zlib1g-dev.."
 
-########################################
-
-#These packages are required at a minimum to build snort and barnyard + their component libraries. The perl requirements are for pulledpork.pl
-#A package name changed on Ubuntu 18.04, and we need to account for that. so we do an if/then based on the release we pulled a moment ago.
-
-if [[ $release == "18."* ]]; then
-	print_status "Installing base packages: libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libnet-ssleay-perl liblzma-dev libwww-perl zlib1g-dev.."
-	
-	declare -a packages=( libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libnet-ssleay-perl liblzma-dev libwww-perl zlib1g-dev );
-	
-	install_packages ${packages[@]}
-else
-	print_status "Installing base packages: libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libcrypt-ssleay-perl liblzma-dev libwww-perl zlib1g-dev.."
-	
-	declare -a packages=( libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libcrypt-ssleay-perl liblzma-dev libwww-perl zlib1g-dev );
-	
-	install_packages ${packages[@]}
-fi
+declare -a packages=( libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libcrypt-ssleay-perl liblzma-dev libwww-perl zlib1g-dev );
+install_packages ${packages[@]}
 
 #Ubuntu and Debian-based distros renamed libdnet to libdumbnet due to a library conflict. We create a symlink from libdumbnet.h to libdnet.h because barnyard 2 is expecting to find dnet.h, and does NOT look for dumbnet.h 
 
@@ -434,7 +411,7 @@ echo "config_path=$snort_basedir/etc/snort.conf" >> pulledpork.tmp
 echo "black_list=$snort_basedir/rules/black_list.rules" >>pulledpork.tmp
 echo "IPRVersion=$snort_basedir/rules/iplists" >>pulledpork.tmp	
 echo "ips_policy=security" >> pulledpork.tmp
-echo "version=0.7.4" >> pulledpork.tmp
+echo "version=0.7.3" >> pulledpork.tmp
 cp pulledpork.tmp pulledpork.conf
 
 #Run pulledpork. If the first rule download fails, we try again, and so on until there are no other snort rule tarballs to attempt to download.

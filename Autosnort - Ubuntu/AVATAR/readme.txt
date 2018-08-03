@@ -15,7 +15,9 @@ Thanks,
 
 da_667
 
-
+8-3-18
+-This script is now compatible with Ubuntu 18.04, in addition to Ubuntu 16.04
+-Fixed the pulledpork.conf this script generates. It now reflects the current version of pulledpork.pl (0.7.4)
 10-18-2017
 - Fixed a bug in the "snorttar" variable regex. To make a long story short, Cisco changed filename version formats for the Snort tarball on their site, and that broke various things in the script, like downloading the latest Snort tarball, and downloading the right rules for the current snort version via pulledpork. This should be un-borked now.
 - Removed attempts to download older snort rule tarballs via pulledpork. Cisco now allows Registered Snort users (e.g. the free rule users) to download a rule tarball compatible with the latest snort release (that means compatible Shared Object rules). The only difference is that the rules are /still/ 30 days behind the subscribed users. Such is life.
