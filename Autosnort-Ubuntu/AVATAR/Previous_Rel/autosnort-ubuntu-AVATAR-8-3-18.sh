@@ -1,5 +1,5 @@
 #!/bin/bash
-#Autosnort script for Ubuntu 12.04+
+#Autosnort script for Ubuntu 16.04+
 
 #Functions, functions everywhere.
 
@@ -169,7 +169,6 @@ apt-get update &>> $logfile && apt-get -y upgrade &>> $logfile
 error_check 'System updates'
 
 ########################################
-
 #Need to do an OS version check.
 
 print_status "OS Version Check.."
@@ -182,20 +181,34 @@ else
 fi
 
 ########################################
-
-#These packages are required at a minimum to build snort and barnyard + their component libraries. The perl requirements are for pulledpork.pl
+#These packages are required at a minimum to build snort, barnyard + their component libraries. The perl requirements are for pulledpork.pl
 #A package name changed on Ubuntu 18.04, and we need to account for that. so we do an if/then based on the release we pulled a moment ago.
 
 if [[ $release == "18."* ]]; then
-	print_status "Installing base packages: libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libnet-ssleay-perl liblzma-dev libwww-perl zlib1g-dev.."
+	#some of the packages we need aren't in the main package repo in 18.04, so we need to modify sources.list to install packages from universe. Before doing that, make a backup of sources.list. If the sources.list.bak file exists, that means the script ran before and somehow bombed out, and we don't want to overwrite a good backup that may contain user customizations
+	print_status "adjusting /etc/apt/sources.list to utilize universe packages.."
+	if [ ! -f /etc/apt/sources.list.bak ]; then
+		cp /etc/apt/sources.list /etc/apt/sources.list.bak &>> $logfile
+		error_check 'Backup of /etc/apt/sources.list'
+	else
+		print_notification '/etc/apt/sources.list.bak already exists.'
+	fi
 	
-	declare -a packages=( libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libnet-ssleay-perl liblzma-dev libwww-perl zlib1g-dev );
+	#rather than using sed or awk to modify the sources.list file, we use echo -e and clobber the sources.list file, replacing it with our modifications that enable universe packages. If users have non-default package repos enabled, they can restore them from the backup file we create before doing this.
+	echo -e "deb http://archive.ubuntu.com/ubuntu bionic main universe\\ndeb http://archive.ubuntu.com/ubuntu bionic-security main universe\\ndeb http://archive.ubuntu.com/ubuntu bionic-updates main universe" > /etc/apt/sources.list
+	error_check 'Modification of /etc/apt/sources.list'
+	print_notification 'This script assumes a default sources.list, and changes all the default repos from "main" to "main universe". If you added any third party sources, you will need to re-enter those manually from the file /etc/apt/sources.list.bak, into your new /etc/apt/sources.list file.'
+	
+	print_status "Installing base packages: libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libnet-ssleay-perl liblzma-dev libluajit libwww-perl zlib1g-dev.."
+	
+	declare -a packages=( libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libnet-ssleay-perl liblzma-dev libluajit-5.1-2 libwww-perl zlib1g-dev );
 	
 	install_packages ${packages[@]}
-else
-	print_status "Installing base packages: libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libcrypt-ssleay-perl liblzma-dev libwww-perl zlib1g-dev.."
 	
-	declare -a packages=( libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libcrypt-ssleay-perl liblzma-dev libwww-perl zlib1g-dev );
+else
+	print_status "Installing base packages: libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libcrypt-ssleay-perl liblzma-dev libluajit libwww-perl zlib1g-dev.."
+	
+	declare -a packages=( libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libcrypt-ssleay-perl liblzma-dev libluajit-5.1-2 libwww-perl zlib1g-dev );
 	
 	install_packages ${packages[@]}
 fi
