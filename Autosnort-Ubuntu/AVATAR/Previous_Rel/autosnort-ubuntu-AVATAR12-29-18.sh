@@ -234,8 +234,7 @@ print_status "Checking latest versions of Snort, Daq and Rules via snort.org..."
 cd /tmp
 wget https://www.snort.org -O /tmp/snort &> $logfile
 error_check 'Download of snort.org index page'
-#changed the page we download to determine the latest .conf file available. use to go to www.snort.org/configurations, but this file doesn't seem to be kept up to date particularly well..
-wget https://www.snort.org/documents -O /tmp/snort_conf &> $logfile
+wget https://www.snort.org/configurations -O /tmp/snort_conf &> $logfile
 error_check 'Download of snort.conf examples page'
 
 #had to change the regex for snorttar -- used to be that the snort-x.x.x.x.tar.gz file would have exactly four digits (each x is one digit). Snort 2.9.11 has change that -- not only can new versions only have three digits, the minor version number is now in the double digits -- which is something I never encountered, so I never coded for it
@@ -245,10 +244,8 @@ daqtar=`egrep -o "daq-.*.tar.gz" /tmp/snort | head -1 | cut -d"<" -f1`
 snortver=`echo $snorttar | sed 's/.tar.gz//g'`
 daqver=`echo $daqtar | sed 's/.tar.gz//g'`
 
-#had to change the regex for the conf file download choices to ensure we're pulling snort 2.x config files.
-
-choice1conf=`egrep -o "snort-20.*-conf" /tmp/snort_conf | sort -ru | head -1` #snort.conf download attempt 1
-choice2conf=`egrep -o "snort-20.*-conf" /tmp/snort_conf | sort -ru | head -2 | tail -1` #snort.conf download 
+choice1conf=`egrep -o "snort-.*-conf" /tmp/snort_conf | sort -ru | head -1` #snort.conf download attempt 1
+choice2conf=`egrep -o "snort-.*-conf" /tmp/snort_conf | sort -ru | head -2 | tail -1` #snort.conf download 
 
 
 rm /tmp/snort
