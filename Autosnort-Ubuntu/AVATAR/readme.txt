@@ -20,7 +20,8 @@ This is a special release of autosnort meant to be used for students in the Buil
 Thanks,
 
 da_667
-
+5-21-19
+-Discovered a bug where Shared Object rules were no longer being used/installed. Why? As it turns out, snort doesn't ship precompiled rules for Ubuntu 12.04 anymore. Which makes sense. Single line change in the script fixed the issue.
 1-3-19
 -A user reported an issue where autosnort is failing to download the latest ".conf" files from snort.org/configurations. Apparently at some point, the reference snort conf files started getting posted to snort.org/documents instead. The script has been changed to wget snort.org/documents, egrep for "snort-20*-conf" to get a list of snort 2.x reference conf files available for download, and attempts to download the latest one, and if that fails (for some odd reason) the second latest one. For example, currently snort 2.9.12 is out. The conf file for snort 2.9.11.1 is the latest config file, while 2.9.11 is the second latest available. The script will try to pull the config file for 2.9.11.1, then if that fails revert to trying to pull the config file for 2.9.11. Some of you might be worried, thinking the 2.9.11.1 config file might not be compatible with 2.9.12, but 99% of the time, this is NEVER an issue. But if you insist on having a matching reference config file for the latest version of snort, then I highly suggest hitting the snort mailing list and bothering Joel Esler or whoever is in charge of this process. Usually someone pings him on the mailing list and they upload a new reference config file a few hours later.
 12-29-18
