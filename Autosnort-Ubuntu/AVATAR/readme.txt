@@ -20,6 +20,8 @@ This is a special release of autosnort meant to be used for students in the Buil
 Thanks,
 
 da_667
+5-27-19
+-the rule_url for the 'opensource.gz' file that pulledpork downloads has changed, and either it changed a while ago and the redirects are broken, or it changed recently and they broke the redirects. This was another single-line fix.
 5-21-19
 -Discovered a bug where Shared Object rules were no longer being used/installed. Why? As it turns out, snort doesn't ship precompiled rules for Ubuntu 12.04 anymore. Which makes sense. Single line change in the script fixed the issue.
 1-3-19
