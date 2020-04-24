@@ -14,12 +14,22 @@ This is a special release of autosnort meant to be used for students in the Buil
 3. modify full_autosnort.conf (e.g. interface names, base installation directory, etc.). At an absolute minimum you MUST input a valid snort.org Oink Code
 4. As root, (or via "sudo") run autosnort-ubuntu-AVATAR.sh
 5. On successful reboot, snort should be running (try ps -ef | grep snort to check)
-6. snortd service should be registered, you can use 'service snortd (start|stop|status|restart) to control the snort process.
+6. snortd.service should be registered, you can use 'service snortd (start|stop|status|restart) to control the snort process, and/or use systemd systemctl commands to control the snort service as well.
 7. Errors? Problems? Check the file /var/log/autosnort_install.log for troubleshooting.
 
 Thanks,
 
 da_667
+
+-Patch Notes-
+
+4-23-20
+-Ubuntu 20.04 is out. In preparation for a second edition of Building Virtual Machine Labs, support for ubuntu 16.04 has been removed from this release. Out with the old, in with the new.
+--As always previous releases are in the previous released directory if you have an ubuntu 16.04 server you can't upgrade, and you need to have a Snort instance for. Don't sweat it.
+-Fixed a problem with compiling libDAQ in which you need to run autoreconf before the configure/make/make install song and dance
+-The ifconfig command has been phased out and replaced with ip link set to configure interface flags now.
+-Replaced the old snortd init script with a systemd snortd.service file.
+--Why? Because it takes advantage of the only good thing systemd has to offer: service watchdog/service persistence. Additionally there is some light sandboxing that systemd affords to services. This is literally the only time you'll hear me saying anything positive about systemd. I hope you enjoy it
 5-27-19
 -the rule_url for the 'opensource.gz' file that pulledpork downloads has changed, and either it changed a while ago and the redirects are broken, or it changed recently and they broke the redirects. This was another single-line fix.
 5-21-19

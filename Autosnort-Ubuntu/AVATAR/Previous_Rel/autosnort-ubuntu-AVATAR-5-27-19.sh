@@ -1,5 +1,5 @@
 #!/bin/bash
-#Autosnort script for Ubuntu 18.04+
+#Autosnort script for Ubuntu 16.04+
 #Please note that this version of the script is specifically made available for students of Building Virtual Labs training on networkdefense.io, as well as the book, Building Virtual Machine Labs: A Hands-On Guide
 #This script will configure Snort
 
@@ -175,34 +175,20 @@ error_check 'System updates'
 
 print_status "OS Version Check.."
 release=`lsb_release -r|awk '{print $2}'`
-if [[ $release == "18."* || "20."* ]]; then
+if [[ $release == "16."* || "18."* ]]; then
 	print_good "OS is Ubuntu. Good to go."
 else
-    print_notification "This is not Ubuntu 18.x or 20.x, this script has NOT been tested on other platforms."
+    print_notification "This is not Ubuntu 16.x or 18.x, this script has NOT been tested on other platforms."
 	print_notification "You continue at your own risk!(Please report your successes or failures!)"
 fi
 
 ########################################
-#These packages are required at a minimum to build snort, the data acquisition (DAQ) libraries, and the pulledpork rule manager. 
+#These packages are required at a minimum to build snort, barnyard + their component libraries. The perl requirements are for pulledpork.pl
+#A package name changed on Ubuntu 18.04, and we need to account for that. so we do an if/then based on the release we pulled a moment ago.
 
-#It seems like Ubuntu 20.04 enables access to universe repos, or has access to the required items by default, so we don't have to shuffle around the sources.list file anymore.
-
-if [[ $release == "20."* ]]; then
-
-	print_status "Installing base packages: libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libnet-ssleay-perl liblzma-dev libluajit-5.1-2 libluajit-5.1-common libluajit-5.1-dev luajit libwww-perl libnghttp2-dev libssl-dev openssl pkg-config zlib1g-dev.."
-	
-	declare -a packages=( libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libnet-ssleay-perl liblzma-dev libluajit-5.1-2 libluajit-5.1-common libluajit-5.1-dev luajit libwww-perl libnghttp2-dev libssl-dev openssl pkg-config zlib1g-dev );
-	
-	install_packages ${packages[@]}
-
-else
-	
+if [[ $release == "18."* ]]; then
 	#some of the packages we need aren't in the main package repo in 18.04, so we need to modify sources.list to install packages from universe. Before doing that, make a backup of sources.list. If the sources.list.bak file exists, that means the script ran before and somehow bombed out, and we don't want to overwrite a good backup that may contain user customizations
-	#We make the assumption that if the user is NOT installing on ubuntu 20.04, then they're installing on 18.04. Its a bold strategy, cotton. I guess we'll see if that works out for us.
-	
 	print_status "adjusting /etc/apt/sources.list to utilize universe packages.."
-	print_notification "If you are not running ubuntu 18.04, I highly suggest hitting ctrl+c to cancel this, or you'll end up adding package sources to your distro that could potentially break a lot of stuff."
-	sleep 10
 	if [ ! -f /etc/apt/sources.list.bak ]; then
 		cp /etc/apt/sources.list /etc/apt/sources.list.bak &>> $logfile
 		error_check 'Backup of /etc/apt/sources.list'
@@ -220,7 +206,13 @@ else
 	declare -a packages=( libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libnet-ssleay-perl liblzma-dev libluajit-5.1-2 libluajit-5.1-common libluajit-5.1-dev luajit libwww-perl libnghttp2-dev libssl-dev openssl pkg-config zlib1g-dev );
 	
 	install_packages ${packages[@]}
-
+	
+else
+	print_status "Installing base packages: libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libcrypt-ssleay-perl liblzma-dev libluajit-5.1-2 libluajit-5.1-common libluajit-5.1-dev luajit libwww-perl libnghttp2-dev libssl-dev openssl pkg-config zlib1g-dev.."
+	
+	declare -a packages=( libdumbnet-dev ethtool build-essential libpcap0.8-dev libpcre3-dev bison flex autoconf libtool libarchive-tar-perl libcrypt-ssleay-perl liblzma-dev libluajit-5.1-2 libluajit-5.1-common libluajit-5.1-dev luajit libwww-perl libnghttp2-dev libssl-dev openssl pkg-config zlib1g-dev );
+	
+	install_packages ${packages[@]}
 fi
 
 #Ubuntu and Debian-based distros renamed libdnet to libdumbnet due to a library conflict. We create a symlink from libdumbnet.h to libdnet.h because barnyard 2 is expecting to find dnet.h, and does NOT look for dumbnet.h 
@@ -277,9 +269,6 @@ error_check 'Untar of DAQ'
 cd $daqver
 
 print_status "Configuring, making, compiling and linking DAQ libraries. This will take a moment or two.."
-
-autoreconf -f -i &>> $logfile
-error_check 'Autoreconf DAQ'
 
 ./configure &>> $logfile
 error_check 'Configure DAQ'
@@ -505,33 +494,29 @@ ethtool -K $snort_iface_2 gro off &>> $logfile
 ethtool -K $snort_iface_2 lro off &>> $logfile 
 
 ########################################
-#The year was 2020 in which systemd doing the one thing its actually pretty well designed for won me over and make me wave the white flag.
-#This portion of the script uses the full_autosnort.conf to reconfigure some stuff in the snortd.service file, then installs the script in /etc/systemd/system/snortd.service
-#I'd like to credit https://github.com/afpacket/snort-systemd/blob/master/snort.service with the majority of the work for updating my ages old init script to systemd.
+#Finally got around doing service persistence the right way. We check to see if the init script is already installed. If it isn't we verify the user has the init script in the right place for us to copy, then copy it into place.
 
 cd "$execdir"
-if [ -f /etc/systemd/system/snortd.service ]; then
+if [ -f /etc/init.d/snortd ]; then
 	print_notification "Snortd init script already installed."
 else
-	if [ ! -f "$execdir"/snortd.service ]; then
-		print_error" Unable to find $execdir/snortd.service. Please ensure  the snortd.service file is there and try again."
+	if [ ! -f "$execdir"/snortd ]; then
+		print_error" Unable to find $execdir/snortd. Please ensure snortd file is there and try again."
 		exit 1
 	else
-		print_good "Found snortd systemd service script. Configuring.."
+		print_good "Found snortd init script."
 	fi
 	
-	cp snortd.service snortd_2 &>> $logfile
+	cp snortd snortd_2 &>> $logfile
 	sed -i "s#snort_basedir#$snort_basedir#g" snortd_2
 	sed -i "s#snort_iface1#$snort_iface_1#g" snortd_2
 	sed -i "s#snort_iface2#$snort_iface_2#g" snortd_2
-	cp snortd_2 /etc/systemd/system/snortd.service &>> $logfile
-	chown root:root /etc/systemd/system/snortd.service &>> $logfile
-	chmod 700 /etc/systemd/system/snortd.service &>> $logfile
-	systemctl daemon-reload &>> $logfile
-	error_check 'snortd.service installation'
-	print_notification "Location: /etc/systemd/system/snortd.service"
-	systemctl enable snortd.service &>> $logfile
-	error_check 'snortd.service enable'	
+	cp snortd_2 /etc/init.d/snortd &>> $logfile
+	chown root:root /etc/init.d/snortd &>> $logfile
+	chmod 700 /etc/init.d/snortd &>> $logfile
+	update-rc.d snortd defaults &>> $logfile
+	error_check 'Init Script installation'
+	print_notification "Init script located in /etc/init.d/snortd"
 	rm -rf snortd_2 &>> $logfile
 fi
 

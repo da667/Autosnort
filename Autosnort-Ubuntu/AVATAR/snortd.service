@@ -1,0 +1,26 @@
+[Unit]
+Description=Snort Daemon
+After=syslog.target network.target
+
+[Service]
+Type=simple
+
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+ExecStartPre=/usr/sbin/ip link set up promisc on arp off multicast off dev snort_iface1
+ExecStartPre=/usr/sbin/ip link set up promisc on arp off multicast off dev snort_iface2
+ExecStartPre=/usr/sbin/ethtool -K snort_iface1 rx off tx off gro off lro off
+ExecStartPre=/usr/sbin/ethtool -K snort_iface2 rx off tx off gro off lro off
+
+ExecStart=snort_basedir/bin/snort  -D -u snort -g snort -c /opt/snort/etc/snort.conf -Q --daq afpacket --daq-mode inline -i snort_iface1:snort_iface2
+
+KillMode=process
+
+Restart=on-failure
+RestartSec=60s
+
+[Install]
+WantedBy=multi-user.target
