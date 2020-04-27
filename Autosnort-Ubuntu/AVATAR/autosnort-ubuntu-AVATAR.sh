@@ -334,12 +334,12 @@ print_status "Checking for snort user and group.."
 
 getent passwd snort &>> $logfile
 if [ $? -eq 0 ]; then
-	print_notificiation "snort user exists. Verifying group exists.."
+	print_notification "snort user exists. Verifying group exists.."
 	id -g snort &>> $logfile
 	if [ $? -eq 0 ]; then
 		print_notification "snort group exists."
 	else
-		print_noficiation "snort group does not exist. Creating.."
+		print_notification "snort group does not exist. Creating.."
 		groupadd snort
 		usermod -G snort snort
 	fi

@@ -15,7 +15,7 @@ ExecStartPre=/usr/sbin/ip link set up promisc on arp off multicast off dev snort
 ExecStartPre=/usr/sbin/ethtool -K snort_iface1 rx off tx off gro off lro off
 ExecStartPre=/usr/sbin/ethtool -K snort_iface2 rx off tx off gro off lro off
 
-ExecStart=snort_basedir/bin/snort  -D -u snort -g snort -c /opt/snort/etc/snort.conf -Q --daq afpacket --daq-mode inline -i snort_iface1:snort_iface2
+ExecStart=snort_basedir/bin/snort -D -u snort -g snort -c /opt/snort/etc/snort.conf -Q --daq afpacket --daq-mode inline -i snort_iface1:snort_iface2
 
 KillMode=process
 
