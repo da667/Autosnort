@@ -449,7 +449,7 @@ fi
 echo "rule_url=https://www.snort.org/reg-rules/|snortrules-snapshot.tar.gz|$o_code" > pulledpork.tmp
 echo "rule_url=https://snort.org/downloads/community/|opensource.gz|Opensource" >> pulledpork.tmp
 echo "rule_url=https://snort.org/downloads/community/|community-rules.tar.gz|Community" >> pulledpork.tmp
-echo "rule_url=http://talosintel.com/feeds/ip-filter.blf|IPBLACKLIST|open" >> pulledpork.tmp
+echo "rule_url=http://talosintel.com/feeds/|ip-filter.blf|IPBLACKLIST|open" >> pulledpork.tmp
 echo "ignore=deleted.rules,experimental.rules,local.rules" >> pulledpork.tmp
 echo "temp_path=/tmp" >> pulledpork.tmp
 echo "rule_path=$snort_basedir/rules/snort.rules" >> pulledpork.tmp
@@ -465,7 +465,7 @@ echo "config_path=$snort_basedir/etc/snort.conf" >> pulledpork.tmp
 echo "black_list=$snort_basedir/rules/black_list.rules" >>pulledpork.tmp
 echo "IPRVersion=$snort_basedir/rules/iplists" >>pulledpork.tmp	
 echo "ips_policy=security" >> pulledpork.tmp
-echo "version=0.7.4" >> pulledpork.tmp
+echo "version=0.8.0" >> pulledpork.tmp
 cp pulledpork.tmp pulledpork.conf
 
 #Run pulledpork. If the first rule download fails, we try again, and so on until there are no other snort rule tarballs to attempt to download.
